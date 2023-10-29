@@ -76,7 +76,7 @@ async fn accept_connection(stream: TcpStream) {
     let jdata = json!({
         "t": "STOP"
     });
-    let (mut track, mut controler) = create_player(Restartable::ffmpeg(" ", false).await.unwrap().into());
+    let (mut _track, mut controler) = create_player(Restartable::ffmpeg(" ", false).await.unwrap().into()); // make to stop panic when the control is already set when use
     dr.add_global_event(Event::Track(songbird::TrackEvent::End), Callback {ws: send_s.clone(), data: jdata});
     while let Some(msg) = read.next().await {
         if msg.is_err() { 
@@ -117,8 +117,8 @@ async fn accept_connection(stream: TcpStream) {
                 controler.stop().unwrap();
                 dr.stop();
                 let data = Restartable::ffmpeg("https://m-api.fantasybot.tech/api/sp/spotify:track:2EjSewEKEZShOUBwFXUrK5?auth=50cad348f64323c6c9e2ff494a76c039", false).await.unwrap();
-                (track, controler) = create_player(data.into());
-                dr.play(track);
+                (_track, controler) = create_player(data.into());
+                dr.play(_track);
             } else if data_out == "VOLUME" {
                 let dataout = data.as_i64().unwrap();
                 controler.set_volume(dataout as f32 / 100.0).unwrap();

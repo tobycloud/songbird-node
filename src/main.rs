@@ -30,7 +30,6 @@ struct Callback {
 impl EventHandler for Callback {
     async fn act(&self, _ctx: &EventContext<'_>) -> Option<Event> {
         self.ws.send(Message::Text(self.data.to_string())).unwrap();
-        println!("ended");
         None
     }
 }
@@ -114,10 +113,9 @@ async fn accept_connection(stream: TcpStream) {
                 dr.connect(ConnectionInfo {channel_id: Some(ChannelId(channel_id)), endpoint: endpoint.to_string(), guild_id: GuildId(guild_id), session_id: session_id.clone(), token, user_id: UserId(user_id)}).await.unwrap();
             } else if data_out == "PLAY" {
                 let dataout = data.as_str().unwrap().to_string();
-                println!("{:?}", dataout);
                 controler.stop().unwrap();
                 dr.stop();
-                let data = Restartable::ffmpeg("https://m-api.fantasybot.tech/api/sp/spotify:track:2EjSewEKEZShOUBwFXUrK5?auth=50cad348f64323c6c9e2ff494a76c039", false).await.unwrap();
+                let data = Restartable::ffmpeg(dataout, false).await.unwrap();
                 (_track, controler) = create_player(data.into());
                 controler.set_volume(volume as f32 / 100.0).unwrap();
                 dr.play(_track);

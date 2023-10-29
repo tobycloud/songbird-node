@@ -103,7 +103,6 @@ async fn accept_connection(stream: TcpStream) {
                     return;
                 }
                 channel_id = channel_id_raw.as_str().unwrap().to_string().parse::<u64>().unwrap();
-                print!("{:?}\n\n", msg);
             } else if data_out == "VOICE_SERVER_UPDATE" {
                 let msg = data.as_object().unwrap();
                 let token = msg.get("token").unwrap().as_str().unwrap().to_string();

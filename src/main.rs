@@ -1,15 +1,16 @@
-use serde_json::json;
-use tokio::{process::Command, io::AsyncReadExt};
-use std::process::Stdio;
-use tokio::sync::mpsc;
-use futures_util::{StreamExt, SinkExt};
+use core::f32;
+
+use futures_util::{SinkExt, StreamExt};
+use serde_json::{json, Value};
+use tokio::sync::mpsc::UnboundedSender;
+use tokio_tungstenite::tungstenite::Message;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::{
     accept_hdr_async,
-    tungstenite::{handshake::server::{Request, Response}, Message},
+    tungstenite::handshake::server::{Request, Response},
 };
-
-mod obj;
+use async_trait::async_trait;
+use songbird::{Driver, Config, ConnectionInfo, EventContext, id::{GuildId, UserId, ChannelId}, input::Restartable, Event, EventHandler, create_player};
 
 #[tokio::main]
 async fn main() {
@@ -17,6 +18,20 @@ async fn main() {
 
     while let Ok((stream, _)) = server.accept().await {
         tokio::spawn(accept_connection(stream));
+    }
+}
+
+struct Callback {
+    ws: UnboundedSender<Message>,
+    data: Value
+}
+
+#[async_trait]
+impl EventHandler for Callback {
+    async fn act(&self, _ctx: &EventContext<'_>) -> Option<Event> {
+        self.ws.send(Message::Text(self.data.to_string())).unwrap();
+        println!("ended");
+        None
     }
 }
 
@@ -38,13 +53,36 @@ async fn accept_connection(stream: TcpStream) {
         } */
         Ok(response)
     };
-    let mut ws_stream = accept_hdr_async(stream, callback)
+    let (send_s, mut send_r) = tokio::sync::mpsc::unbounded_channel();
+    let ws_stream = accept_hdr_async(stream, callback)
         .await
         .expect("Error during the websocket handshake occurred");
+    let (mut write, mut read) = ws_stream.split();
+    tokio::spawn(async move {
+        loop {
+            let read_data = send_r.recv().await;
+            if read_data.is_none() { 
+                write.close().await.unwrap();
+                break;
+            }
+            let out = write.send(read_data.unwrap()).await;
+            if out.is_err() { break; }
+        }
+    });
+    let mut user_id = 0;
     let mut session_id = "".to_string();
-    let mut user_id = "".to_string();
-    let mut newws;
-    while let Some(msg) = ws_stream.next().await {
+    let mut channel_id= 0;
+    let mut dr = Driver::new(Config::default());
+    let jdata = json!({
+        "t": "STOP"
+    });
+    let (mut track, mut controler) = create_player(Restartable::ffmpeg(" ", false).await.unwrap().into());
+    dr.add_global_event(Event::Track(songbird::TrackEvent::End), Callback {ws: send_s.clone(), data: jdata});
+    while let Some(msg) = read.next().await {
+        if msg.is_err() { 
+            dr.leave();
+            return; 
+        }
         let msg = msg.unwrap();
         if msg.is_text() {
             let out: serde_json::Value = serde_json::from_str(msg.to_text().unwrap()).unwrap();
@@ -52,88 +90,50 @@ async fn accept_connection(stream: TcpStream) {
             if out["t"].is_string() {
                 data_out = out["t"].as_str().unwrap();
             }
+            let data: serde_json::Value = out["d"].clone();
             if data_out == "VOICE_STATE_UPDATE" {
-                let msg = out["d"].as_object().unwrap();
+                let msg = data.as_object().unwrap();
                 let sid = msg.get("session_id").unwrap().as_str().unwrap();
                 session_id = sid.to_string();
                 let uid = msg.get("user_id").unwrap().as_str().unwrap();
-                user_id = uid.to_string();
-                let channel_id = msg.get("channel_id").unwrap().is_null();
-                if channel_id {
-                    ws_stream.close(None).await.unwrap();
-                    break;
+                user_id = uid.to_string().parse::<u64>().unwrap();
+                let channel_id_raw = msg.get("channel_id").unwrap();
+                if channel_id_raw.is_null() {
+                    drop(send_s);
+                    return;
                 }
+                channel_id = channel_id_raw.as_str().unwrap().to_string().parse::<u64>().unwrap();
                 print!("{:?}\n\n", msg);
             } else if data_out == "VOICE_SERVER_UPDATE" {
-                let msg = out["d"].as_object().unwrap();
-                let token = msg.get("token").unwrap().as_str().unwrap();
-                let guild_id = msg.get("guild_id").unwrap().as_str().unwrap();
+                let msg = data.as_object().unwrap();
+                let token = msg.get("token").unwrap().as_str().unwrap().to_string();
+                let guild_id = msg.get("guild_id").unwrap().as_str().unwrap().to_string().parse::<u64>().unwrap();
                 let endpoint = msg.get("endpoint").unwrap().as_str().unwrap();
-
-                let send_channel = tokio::sync::mpsc::unbounded_channel();
-                let read_channel = tokio::sync::mpsc::unbounded_channel();
-
-                newws = obj::VoiceGateway::new(format!("wss://{}", endpoint), send_channel, read_channel).await;
-                newws.authenticate(session_id.clone(), token.to_string(), user_id.clone(), guild_id.to_string()).await;
-                print!("{:?}\n\n", msg);
-                let data = newws.get_messages_op(2).await;
-                println!("{}", data.unwrap().to_string());
+                dr.leave();
+                dr.connect(ConnectionInfo {channel_id: Some(ChannelId(channel_id)), endpoint: endpoint.to_string(), guild_id: GuildId(guild_id), session_id: session_id.clone(), token, user_id: UserId(user_id)}).await.unwrap();
+            } else if data_out == "PLAY" {
+                let dataout = data.as_str().unwrap().to_string();
+                println!("{:?}", dataout);
+                controler.stop().unwrap();
+                dr.stop();
+                let data = Restartable::ffmpeg("https://m-api.fantasybot.tech/api/sp/spotify:track:2EjSewEKEZShOUBwFXUrK5?auth=50cad348f64323c6c9e2ff494a76c039", false).await.unwrap();
+                (track, controler) = create_player(data.into());
+                dr.play(track);
+            } else if data_out == "VOLUME" {
+                let dataout = data.as_i64().unwrap();
+                controler.set_volume(dataout as f32 / 100.0).unwrap();
+            } else if data_out == "PAUSE" {
+                controler.pause().unwrap();
+            } else if data_out == "RESUME" {
+                controler.play().unwrap();
+            } else if data_out == "STOP" {
+                controler.stop().unwrap();
+                dr.stop();
             } else if data_out == "PING" {
                 let send_smg = json!({"t": "PONG"});
                 let raw_json = Message::Text(send_smg.to_string());
-                ws_stream.send(raw_json).await.unwrap();
-            }
+                send_s.send(raw_json).unwrap();
+            } 
         }
     }
-}
-
-#[allow(dead_code)]
-async fn main_a() {
-    let url = "https://m-api.fantasybot.tech/api/sp/spotify:track:2EjSewEKEZShOUBwFXUrK5?auth=50cad348f64323c6c9e2ff494a76c039";
-    let key_rar = [60,103,26,90,167,61,107,5,234,239,149,125,183,219,20,167,21,110,216,86,121,109,44,244,214,21,80,243,152,206,77,157];
-    let mut args_input:Vec<&str> = "-i".split(" ").collect();
-    args_input.push(url);
-    let mut args:Vec<&str> = "-f s16le -ar 48000 -ac 2 -loglevel warning -blocksize 1920".split(" ").collect();
-    args.push("pipe:1");
-    args_input.extend(args);
-    let mut cmd = Command::new("ffmpeg")
-        .args(args_input)
-        .stdout(Stdio::piped())
-        .spawn().unwrap();
-    let mut stdout = cmd.stdout.take().unwrap();
-    let mut objout = obj::VoiceEncode::new(key_rar, 352226);
-    let mut objotp = obj::AudioOpus::new();
-    let (tx, mut rx) = mpsc::unbounded_channel();
-    let task_rs = tokio::spawn(async move {
-        let mut coutu = 0;
-        loop {
-            let out = rx.recv().await;
-            println!("{coutu}:{}", out.is_none());
-            if out.is_none() {
-                break;
-            }
-            coutu += 1;
-        }
-    });
-    let cl = tx.clone();
-    let sendtask = tokio::spawn(async move {
-        loop {
-            let mut buffer = [0; 1920];
-            let n = stdout.read(&mut buffer[..]).await.unwrap();
-            if (n as u32) == 0 { break; }
-            let sokeout = &buffer[..n];
-            let mut f32_array: [f32; 1920] = [0.0; 1920];
-            for i in 0..n {
-                f32_array[i] = sokeout[i] as f32;
-            }
-            let out_opus = objotp.encode_audio(f32_array);
-            let out = objout.encode_audio(out_opus.as_ref());
-            cl.send(out).unwrap();  
-        }
-    });
-    let outp = cmd.wait().await.unwrap();
-    println!("{}", outp.code().unwrap());
-    sendtask.abort();
-    drop(tx);
-    task_rs.await.unwrap();
 }

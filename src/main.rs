@@ -2,7 +2,7 @@ use core::f32;
 use futures_util::{SinkExt, StreamExt};
 use serde_json::{json, Value};
 use tokio::sync::mpsc::UnboundedSender;
-use tokio_tungstenite::tungstenite::Message;
+use tokio_tungstenite::tungstenite::{Message, http::StatusCode};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::{
     accept_hdr_async,
@@ -11,7 +11,26 @@ use tokio_tungstenite::{
 use async_trait::async_trait;
 use songbird::{Driver, Config, ConnectionInfo, EventContext, id::{GuildId, UserId, ChannelId}, input::ffmpeg, Event, EventHandler, create_player};
 
- 
+#[shuttle_runtime::main]
+async fn shuttle_main() -> Result<MyService, shuttle_runtime::Error> {
+    Ok(MyService {})
+}
+
+struct MyService {}
+
+#[shuttle_runtime::async_trait]
+impl shuttle_runtime::Service for MyService {
+    async fn bind(self, addr: std::net::SocketAddr) -> Result<(), shuttle_runtime::Error> {
+        let server = TcpListener::bind(addr).await.unwrap();
+
+        while let Ok((stream, _)) = server.accept().await {
+            tokio::spawn(accept_connection(stream));
+        }
+        Ok(())
+    }
+}
+
+/* 
 #[tokio::main]
 async fn main() {
     let server = TcpListener::bind("127.0.0.1:8080").await.unwrap();
@@ -20,6 +39,7 @@ async fn main() {
         tokio::spawn(accept_connection(stream));
     }
 }
+*/
 
 struct Callback {
     ws: UnboundedSender<Message>,
@@ -35,8 +55,7 @@ impl EventHandler for Callback {
 }
 
 async fn accept_connection(stream: TcpStream) {
-    let callback = |_req: &Request, response: Response| {
-        /*
+    let callback = |req: &Request, response: Response| {
         let key = "test";
         let auth_op = req.headers().get("Authorization");
          if auth_op.is_none() {
@@ -49,7 +68,7 @@ async fn accept_connection(stream: TcpStream) {
             .status(StatusCode::FORBIDDEN)
             .body(None).unwrap();
             return Err(response);
-        } */
+        } 
         Ok(response)
     };
     let (send_s, mut send_r) = tokio::sync::mpsc::unbounded_channel();

@@ -1,5 +1,4 @@
 use core::f32;
-
 use futures_util::{SinkExt, StreamExt};
 use serde_json::{json, Value};
 use tokio::sync::mpsc::UnboundedSender;
@@ -10,8 +9,9 @@ use tokio_tungstenite::{
     tungstenite::handshake::server::{Request, Response},
 };
 use async_trait::async_trait;
-use songbird::{Driver, Config, ConnectionInfo, EventContext, id::{GuildId, UserId, ChannelId}, input::Restartable, Event, EventHandler, create_player};
+use songbird::{Driver, Config, ConnectionInfo, EventContext, id::{GuildId, UserId, ChannelId}, input::ffmpeg, Event, EventHandler, create_player};
 
+ 
 #[tokio::main]
 async fn main() {
     let server = TcpListener::bind("127.0.0.1:8080").await.unwrap();
@@ -75,7 +75,7 @@ async fn accept_connection(stream: TcpStream) {
     let jdata = json!({
         "t": "STOP"
     });
-    let (mut _track, mut controler) = create_player(Restartable::ffmpeg(" ", false).await.unwrap().into()); // make to stop panic when the control is already set when use
+    let (mut _track, mut controler) = create_player(ffmpeg(" ").await.unwrap().into()); // make to stop panic when the control is already set when use
     dr.add_global_event(Event::Track(songbird::TrackEvent::End), Callback {ws: send_s.clone(), data: jdata});
     let mut volume = 100;
     while let Some(msg) = read.next().await {
@@ -86,6 +86,7 @@ async fn accept_connection(stream: TcpStream) {
         let msg = msg.unwrap();
         if msg.is_text() {
             let out: serde_json::Value = serde_json::from_str(msg.to_text().unwrap()).unwrap();
+            println!("{}", out);
             let mut data_out = "";
             if out["t"].is_string() {
                 data_out = out["t"].as_str().unwrap();
@@ -112,10 +113,9 @@ async fn accept_connection(stream: TcpStream) {
                 dr.connect(ConnectionInfo {channel_id: Some(ChannelId(channel_id)), endpoint: endpoint.to_string(), guild_id: GuildId(guild_id), session_id: session_id.clone(), token, user_id: UserId(user_id)}).await.unwrap();
             } else if data_out == "PLAY" {
                 let dataout = data.as_str().unwrap().to_string();
-                controler.stop().unwrap();
                 dr.stop();
-                let data = Restartable::ffmpeg(dataout, false).await.unwrap();
-                (_track, controler) = create_player(data.into());
+                let data = ffmpeg(dataout).await.unwrap();
+                (_track, controler) = create_player(data);
                 controler.set_volume(volume as f32 / 100.0).unwrap();
                 dr.play(_track);
             } else if data_out == "VOLUME" {

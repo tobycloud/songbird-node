@@ -11,30 +11,6 @@ use tokio_tungstenite::{
 use async_trait::async_trait;
 use songbird::{Driver, Config, ConnectionInfo, EventContext, id::{GuildId, UserId, ChannelId}, input::ffmpeg, Event, EventHandler, create_player};
 
-#[shuttle_runtime::main]
-async fn shuttle_main() -> Result<MyService, shuttle_runtime::Error> {
-    Ok(MyService {})
-}
-
-struct MyService {}
-
-#[shuttle_runtime::async_trait]
-impl shuttle_runtime::Service for MyService {
-    async fn bind(self, addr: std::net::SocketAddr) -> Result<(), shuttle_runtime::Error> {
-        let _guard = sentry::init(("https://06e00f17bd39249bf9b58f1457057318@o4506138436239360.ingest.sentry.io/4506138437681152", sentry::ClientOptions {
-            release: sentry::release_name!(),
-            ..Default::default()
-        }));
-        let server = TcpListener::bind(addr).await.unwrap();
-
-        while let Ok((stream, _)) = server.accept().await {
-            tokio::spawn(accept_connection(stream));
-        }
-        Ok(())
-    }
-}
-
-/* 
 #[tokio::main]
 async fn main() {
     let server = TcpListener::bind("127.0.0.1:8080").await.unwrap();
@@ -43,7 +19,6 @@ async fn main() {
         tokio::spawn(accept_connection(stream));
     }
 }
-*/
 
 struct Callback {
     ws: UnboundedSender<Message>,

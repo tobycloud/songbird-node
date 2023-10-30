@@ -1,24 +1,31 @@
 use core::f32;
+use std::net::SocketAddr;
 use futures_util::{SinkExt, StreamExt};
 use serde_json::{json, Value};
 use tokio::sync::mpsc::UnboundedSender;
-#[allow(unused_imports)]
-use tokio_tungstenite::tungstenite::{Message, http::StatusCode};
-use tokio::net::{TcpListener, TcpStream};
-use tokio_tungstenite::{
-    accept_hdr_async,
-    tungstenite::handshake::server::{Request, Response},
+use axum::{
+    extract::ws::{WebSocketUpgrade, WebSocket, Message},
+    routing::get,
+    response::Response,
+    Router,
 };
 use async_trait::async_trait;
 use songbird::{Driver, Config, ConnectionInfo, EventContext, id::{GuildId, UserId, ChannelId}, input::ffmpeg, Event, EventHandler, create_player};
 
 #[tokio::main]
 async fn main() {
-    let server = TcpListener::bind("127.0.0.1:8080").await.unwrap();
+    let app = Router::new().route("/", get(handler));
+    let server_addr = "127.0.0.1:8080";
+    let addr_l: SocketAddr = server_addr.parse().expect("Unable to parse socket address");
+    println!("listening on {}", addr_l.to_string());
+    axum::Server::bind(&addr_l)
+    .serve(app.into_make_service())
+    .await
+    .unwrap();
+}
 
-    while let Ok((stream, _)) = server.accept().await {
-        tokio::spawn(accept_connection(stream));
-    }
+async fn handler(ws: WebSocketUpgrade) -> Response {
+    ws.on_upgrade(accept_connection)
 }
 
 struct Callback {
@@ -34,28 +41,10 @@ impl EventHandler for Callback {
     }
 }
 
-async fn accept_connection(stream: TcpStream) {
-    let callback = |_req: &Request, response: Response| {
-        /*let key = "test";
-        let auth_op = req.headers().get("Authorization");
-         if auth_op.is_none() {
-            let response = Response::builder()
-            .status(StatusCode::FORBIDDEN)
-            .body(None).unwrap();
-            return Err(response);
-        } else if auth_op.unwrap() != key {
-            let response = Response::builder()
-            .status(StatusCode::FORBIDDEN)
-            .body(None).unwrap();
-            return Err(response);
-        }*/
-        Ok(response)
-    };
-    let (send_s, mut send_r) = tokio::sync::mpsc::unbounded_channel();
-    let ws_stream = accept_hdr_async(stream, callback)
-        .await
-        .expect("Error during the websocket handshake occurred");
+
+async fn accept_connection(ws_stream: WebSocket) {
     let (mut write, mut read) = ws_stream.split();
+    let (send_s, mut send_r) = tokio::sync::mpsc::unbounded_channel();
     tokio::spawn(async move {
         loop {
             let read_data = send_r.recv().await;
@@ -83,9 +72,13 @@ async fn accept_connection(stream: TcpStream) {
             return; 
         }
         let msg = msg.unwrap();
-        if msg.is_text() {
-            let out: serde_json::Value = serde_json::from_str(msg.to_text().unwrap()).unwrap();
-            println!("{}", out);
+        let msg = msg.to_text();
+        if msg.is_ok() {
+            let raw_o = serde_json::from_str(msg.unwrap());
+            if raw_o.is_err() {
+                drop(send_s.clone());
+            }
+            let out: serde_json::Value = raw_o.unwrap();
             let mut data_out = "";
             if out["t"].is_string() {
                 data_out = out["t"].as_str().unwrap();

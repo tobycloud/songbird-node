@@ -7,9 +7,9 @@ edition = "2021"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
-tokio-tungstenite = { version = "*", features = ["native-tls"] }
 url = "*"
 futures-util = "*"
 serde_json = "*"
 songbird = { version = "*", features = ["driver"] }
 async-trait = "0.1.74"
+axum = {version = "0.6.20", features=["ws"]}

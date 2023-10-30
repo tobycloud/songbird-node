@@ -21,6 +21,10 @@ struct MyService {}
 #[shuttle_runtime::async_trait]
 impl shuttle_runtime::Service for MyService {
     async fn bind(self, addr: std::net::SocketAddr) -> Result<(), shuttle_runtime::Error> {
+        let _guard = sentry::init(("https://06e00f17bd39249bf9b58f1457057318@o4506138436239360.ingest.sentry.io/4506138437681152", sentry::ClientOptions {
+            release: sentry::release_name!(),
+            ..Default::default()
+        }));
         let server = TcpListener::bind(addr).await.unwrap();
 
         while let Ok((stream, _)) = server.accept().await {

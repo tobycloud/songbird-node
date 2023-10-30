@@ -13,4 +13,5 @@ futures-util = "*"
 serde_json = "*"
 songbird = { version = "*", features = ["driver"] }
 async-trait = "0.1.74"
-shuttle-runtime = { version = "0.30.1", default-features = false }
+shuttle-runtime = { version = "0.30.1", features=["default", "next", "setup-tracing"] }
+sentry = "0.31.7"

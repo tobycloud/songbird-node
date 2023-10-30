@@ -2,6 +2,7 @@ use core::f32;
 use futures_util::{SinkExt, StreamExt};
 use serde_json::{json, Value};
 use tokio::sync::mpsc::UnboundedSender;
+#[allow(unused_imports)]
 use tokio_tungstenite::tungstenite::{Message, http::StatusCode};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::{
@@ -34,8 +35,8 @@ impl EventHandler for Callback {
 }
 
 async fn accept_connection(stream: TcpStream) {
-    let callback = |req: &Request, response: Response| {
-        let key = "test";
+    let callback = |_req: &Request, response: Response| {
+        /*let key = "test";
         let auth_op = req.headers().get("Authorization");
          if auth_op.is_none() {
             let response = Response::builder()
@@ -47,7 +48,7 @@ async fn accept_connection(stream: TcpStream) {
             .status(StatusCode::FORBIDDEN)
             .body(None).unwrap();
             return Err(response);
-        } 
+        }*/
         Ok(response)
     };
     let (send_s, mut send_r) = tokio::sync::mpsc::unbounded_channel();

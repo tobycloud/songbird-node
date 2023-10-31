@@ -16,7 +16,7 @@ use songbird::{Driver, Config, ConnectionInfo, EventContext, id::{GuildId, UserI
 async fn main() {
     let app = Router::new()
     .route("/region", get(handler_region))
-    .route("/", get(handler_ws));
+    .route("/voice", get(handler_ws));
     let server_addr = "127.0.0.1:8080";
     let addr_l: SocketAddr = server_addr.parse().expect("Unable to parse socket address");
     println!("listening on {}", addr_l.to_string());

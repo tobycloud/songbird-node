@@ -1,4 +1,5 @@
 fn main() {
+    println!("Starting install dependencies");
     // Install external dependency (in the shuttle container only)
     if std::env::var("HOSTNAME")
         .unwrap_or_default()
@@ -8,6 +9,7 @@ fn main() {
             .arg("install")
             .arg("-y")
             .arg("libopus-dev") // the apt package the project needs
+            .arg("ffmpeg")
             // can add more here
             .status()
             .expect("failed to run apt")

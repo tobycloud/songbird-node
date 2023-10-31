@@ -12,6 +12,8 @@ use axum::{
 use async_trait::async_trait;
 use songbird::{Driver, Config, ConnectionInfo, EventContext, id::{GuildId, UserId, ChannelId}, input::ffmpeg, Event, EventHandler, create_player};
 
+
+/* 
 #[tokio::main]
 async fn main() {
     let app = Router::new()
@@ -25,6 +27,16 @@ async fn main() {
     .await
     .unwrap();
 }
+*/
+
+#[shuttle_runtime::main]
+async fn axum() -> ShuttleAxum {
+    let app = Router::new()
+    .route("/region", get(handler_region))
+    .route("/voice", get(handler_ws));
+    Ok(app.into())
+}
+
 
 async fn handler_region() -> Response {
     let mut body = reqwest::get("https://api.techniknews.net/ipgeo/").await.unwrap().text().await.unwrap().into_response();

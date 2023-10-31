@@ -14,3 +14,6 @@ songbird = { version = "*", features = ["driver"] }
 async-trait = "0.1.74"
 axum = {version = "0.6.20", features=["ws"]}
 reqwest = { version = "0.11", features = ["json"] }
+# shuttle lib
+shuttle-axum = "0.30.0"
+shuttle-runtime = "0.30.0"

@@ -6,7 +6,7 @@ use tokio::sync::mpsc::UnboundedSender;
 use axum::{
     extract::ws::{WebSocketUpgrade, WebSocket, Message},
     routing::get,
-    response::Response,
+    response::{Response, IntoResponse},
     Router,
 };
 use async_trait::async_trait;
@@ -14,7 +14,9 @@ use songbird::{Driver, Config, ConnectionInfo, EventContext, id::{GuildId, UserI
 
 #[tokio::main]
 async fn main() {
-    let app = Router::new().route("/", get(handler));
+    let app = Router::new()
+    .route("/region", get(handler_region))
+    .route("/", get(handler_ws));
     let server_addr = "127.0.0.1:8080";
     let addr_l: SocketAddr = server_addr.parse().expect("Unable to parse socket address");
     println!("listening on {}", addr_l.to_string());
@@ -24,7 +26,14 @@ async fn main() {
     .unwrap();
 }
 
-async fn handler(ws: WebSocketUpgrade) -> Response {
+async fn handler_region() -> Response {
+    let mut body = reqwest::get("https://api.techniknews.net/ipgeo/").await.unwrap().text().await.unwrap().into_response();
+    body.headers_mut().remove("Content-Type");
+    body.headers_mut().append("Content-Type", "application/json".parse().unwrap());
+    body
+}
+
+async fn handler_ws(ws: WebSocketUpgrade) -> Response {
     ws.on_upgrade(accept_connection)
 }
 

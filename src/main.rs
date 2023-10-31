@@ -1,4 +1,5 @@
 use core::f32;
+#[allow(unused_imports)]
 use std::net::SocketAddr;
 use futures_util::{SinkExt, StreamExt};
 use serde_json::{json, Value};

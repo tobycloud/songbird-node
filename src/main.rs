@@ -2,6 +2,7 @@ use core::f32;
 use std::net::SocketAddr;
 use futures_util::{SinkExt, StreamExt};
 use serde_json::{json, Value};
+use shuttle_axum::ShuttleAxum;
 use tokio::sync::mpsc::UnboundedSender;
 use axum::{
     extract::ws::{WebSocketUpgrade, WebSocket, Message},

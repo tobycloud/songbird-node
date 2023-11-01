@@ -59,6 +59,12 @@ async fn handler_status() -> Response {
                                 "virtual_memory": pros.virtual_memory(),
                             });
         // get all processors then + their memory usage and cpu usage
+        /*
+                let mut newdata = Vec::new();
+        for i in sys.processes() {
+            newdata.push(json!({"name": i.1.name(), "memory": i.1.memory()}));
+        }
+        */
         out
     }).await.unwrap();
     a.to_string().into_response()

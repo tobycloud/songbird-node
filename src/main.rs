@@ -58,6 +58,7 @@ async fn handler_status() -> Response {
                                 "cpu": pros.cpu_usage(), 
                                 "virtual_memory": pros.virtual_memory(),
                             });
+        // get all processors then + their memory usage and cpu usage
         out
     }).await.unwrap();
     a.to_string().into_response()

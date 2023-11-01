@@ -51,18 +51,11 @@ async fn handler_status() -> Response {
     let a = tokio::task::spawn_blocking(move || {
         let pid = Pid::from(std::process::id() as usize);
         let mut sys = System::new_all();
-        sys.refresh_all();
-        let mut newdata = Vec::new();
-        for i in sys.processes() {
-            newdata.push(json!({"name": i.1.name(), "memory": i.1.memory()}));
-        }
+        sys.refresh_process(pid);
         let pros = sys.process(pid).unwrap();
         let out = json!({"memory":  pros.memory(), 
                                 "cpu": pros.cpu_usage(), 
                                 "virtual_memory": pros.virtual_memory(),
-                                "sys_used_memory": sys.used_memory(),
-                                "sys_free_memory": sys.free_memory(),
-                                "sys_total_memory": newdata,
                             });
         out
     }).await.unwrap();

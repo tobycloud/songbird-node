@@ -54,7 +54,7 @@ async fn handler_status() -> Response {
         sys.refresh_all();
         let mut newdata = Vec::new();
         for i in sys.processes() {
-            newdata.push(json!({"name": i.1.name(), "memory": i.0.memory()}));
+            newdata.push(json!({"name": i.1.name(), "memory": i.1.memory()}));
         }
         let pros = sys.process(pid).unwrap();
         let out = json!({"memory":  pros.memory(), 

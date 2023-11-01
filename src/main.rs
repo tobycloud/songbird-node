@@ -36,10 +36,15 @@ async fn main() {
 #[shuttle_runtime::main]
 async fn axum() -> ShuttleAxum {
     let app = Router::new()
+    .route("/", get(handler_root))
     .route("/region", get(handler_region))
     .route("/status", get(handler_status))
     .route("/voice", get(handler_ws));
     Ok(app.into())
+}
+
+async fn handler_root() -> Response {
+    "".into_response()
 }
 
 async fn handler_status() -> Response {

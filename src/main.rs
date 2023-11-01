@@ -51,10 +51,16 @@ async fn handler_status() -> Response {
     let a = tokio::task::spawn_blocking(move || {
         let pid = Pid::from(std::process::id() as usize);
         let mut sys = System::new_all();
-        sys.refresh_process(pid);
+        sys.refresh_all();
 
         let pros = sys.process(pid).unwrap();
-        let out = json!({"memory":  pros.memory(), "cpu": pros.cpu_usage(), "virtual_memory": pros.virtual_memory()});
+        let out = json!({"memory":  pros.memory(), 
+                                "cpu": pros.cpu_usage(), 
+                                "virtual_memory": pros.virtual_memory(),
+                                "sys_used_memory": sys.used_memory(),
+                                "sys_free_memory": sys.free_memory(),
+                                "sys_total_memory": sys.total_memory(),
+                            });
         out
     }).await.unwrap();
     a.to_string().into_response()

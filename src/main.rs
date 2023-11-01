@@ -1,9 +1,11 @@
 use core::f32;
+
 #[allow(unused_imports)]
 use std::net::SocketAddr;
 use futures_util::{SinkExt, StreamExt};
 use serde_json::{json, Value};
 use shuttle_axum::ShuttleAxum;
+use sysinfo::{System, SystemExt, Pid, ProcessExt};
 use tokio::sync::mpsc::UnboundedSender;
 use axum::{
     extract::ws::{WebSocketUpgrade, WebSocket, Message},
@@ -35,8 +37,22 @@ async fn main() {
 async fn axum() -> ShuttleAxum {
     let app = Router::new()
     .route("/region", get(handler_region))
+    .route("/status", get(handler_status))
     .route("/voice", get(handler_ws));
     Ok(app.into())
+}
+
+async fn handler_status() -> Response {
+    let a = tokio::task::spawn_blocking(move || {
+        let pid = Pid::from(std::process::id() as usize);
+        let mut sys = System::new_all();
+        sys.refresh_process(pid);
+
+        let pros = sys.process(pid).unwrap();
+        let out = json!({"memory":  pros.memory(), "cpu": pros.cpu_usage(), "virtual_memory": pros.virtual_memory()});
+        out
+    }).await.unwrap();
+    a.to_string().into_response()
 }
 
 

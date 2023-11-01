@@ -53,7 +53,8 @@ async fn handler_status() -> Response {
         let mut sys = System::new_all();
         sys.refresh_process(pid);
         let pros = sys.process(pid).unwrap();
-        let out = json!({"memory":  pros.memory(), 
+        let out = json!({
+                                "memory":  pros.memory(), 
                                 "cpu": pros.cpu_usage(), 
                                 "virtual_memory": pros.virtual_memory(),
                             });

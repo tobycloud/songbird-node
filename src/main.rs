@@ -146,6 +146,7 @@ async fn accept_connection(ws_stream: WebSocket) {
                 user_id = uid.to_string().parse::<u64>().unwrap();
                 let channel_id_raw = msg.get("channel_id").unwrap();
                 if channel_id_raw.is_null() {
+                    dr.leave();
                     drop(send_s);
                     return;
                 }

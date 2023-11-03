@@ -52,7 +52,7 @@ async fn handler_status() -> Response {
         let pid = Pid::from(std::process::id() as usize);
         let mut sys = System::new_all();
         sys.refresh_system();
-        sys.refresh_processes()
+        sys.refresh_processes();
         let pros = sys.process(pid).unwrap();
         let mut newdata = Vec::new();
         for i in sys.processes() {

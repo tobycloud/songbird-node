@@ -113,6 +113,7 @@ async fn accept_connection(ws_stream: WebSocket) {
     let mut session_id = "".to_string();
     let mut channel_id= 0;
     let mut dr = Driver::new(Config::default());
+    println!("Creating session");
     let jdata = json!({
         "t": "STOP"
     });

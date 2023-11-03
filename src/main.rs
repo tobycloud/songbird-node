@@ -17,11 +17,13 @@ use async_trait::async_trait;
 use songbird::{Driver, Config, ConnectionInfo, EventContext, id::{GuildId, UserId, ChannelId}, input::ffmpeg, Event, EventHandler, create_player};
 
 
-/* 
+
 #[tokio::main]
 async fn main() {
     let app = Router::new()
+    .route("/", get(handler_root))
     .route("/region", get(handler_region))
+    .route("/status", get(handler_status))
     .route("/voice", get(handler_ws));
     let server_addr = "127.0.0.1:8080";
     let addr_l: SocketAddr = server_addr.parse().expect("Unable to parse socket address");
@@ -30,17 +32,6 @@ async fn main() {
     .serve(app.into_make_service())
     .await
     .unwrap();
-}
-*/
-
-#[shuttle_runtime::main]
-async fn axum() -> ShuttleAxum {
-    let app = Router::new()
-    .route("/", get(handler_root))
-    .route("/region", get(handler_region))
-    .route("/status", get(handler_status))
-    .route("/voice", get(handler_ws));
-    Ok(app.into())
 }
 
 async fn handler_root() -> Response {

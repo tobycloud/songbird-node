@@ -49,7 +49,6 @@ async fn handler_status() -> Response {
         }
         let out = json!({
                                 "memory":  pros.memory(), 
-                                "processs": newdata, 
                                 "virtual_memory": pros.virtual_memory(),
                             });
 
@@ -116,7 +115,12 @@ async fn accept_connection(ws_stream: WebSocket) {
         let msg = msg.unwrap();
         let msg = msg.to_text();
         if msg.is_ok() {
-            let raw_o = serde_json::from_str(msg.unwrap());
+            let uq = msg.unwrap();
+            if uq.is_empty() {
+                drop(send_s.clone());
+                return;
+            }
+            let raw_o = serde_json::from_str(uq);
             if raw_o.is_err() {
                 drop(send_s.clone());
             }

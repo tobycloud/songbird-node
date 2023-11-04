@@ -23,7 +23,7 @@ async fn main() {
     .route("/region", get(handler_region))
     .route("/status", get(handler_status))
     .route("/voice", get(handler_ws));
-    let server_addr = "127.0.0.1:8080";
+    let server_addr = "0.0.0.0:8080";
     let addr_l: SocketAddr = server_addr.parse().expect("Unable to parse socket address");
     println!("listening on {}", addr_l.to_string());
     axum::Server::bind(&addr_l)
@@ -102,7 +102,6 @@ async fn accept_connection(ws_stream: WebSocket) {
     let mut session_id = "".to_string();
     let mut channel_id= 0;
     let mut dr = Driver::new(Config::default());
-    println!("Creating session");
     let jdata = json!({
         "t": "STOP"
     });

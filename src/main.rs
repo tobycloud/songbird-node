@@ -104,6 +104,7 @@ async fn accept_connection(ws_stream: WebSocket) {
     let jdata = json!({
         "t": "STOP"
     });
+    let mut isplayed = false;
     let (mut _track, mut controler) = create_player(ffmpeg(" ").await.unwrap().into()); // make to stop panic when the control is already set when use
     dr.add_global_event(Event::Track(songbird::TrackEvent::End), Callback {ws: send_s.clone(), data: jdata});
     let mut volume = 100;
@@ -152,11 +153,19 @@ async fn accept_connection(ws_stream: WebSocket) {
                 dr.connect(ConnectionInfo {channel_id: Some(ChannelId(channel_id)), endpoint: endpoint.to_string(), guild_id: GuildId(guild_id), session_id: session_id.clone(), token, user_id: UserId(user_id)}).await.unwrap();
             } else if data_out == "PLAY" {
                 let dataout = data.as_str().unwrap().to_string();
-                dr.stop();
+                if isplayed {
+                    let jdata = json!({
+                        "t": "STOP"
+                    });
+                    let raw_json = Message::Text(jdata.to_string());
+                    send_s.send(raw_json).unwrap();
+                    dr.stop();
+                }
                 let data = ffmpeg(dataout).await.unwrap();
                 (_track, controler) = create_player(data);
                 controler.set_volume(volume as f32 / 100.0).unwrap();
                 dr.play(_track);
+                isplayed = true;
             } else if data_out == "VOLUME" {
                 let dataout = data.as_i64().unwrap();
                 volume = dataout;
@@ -168,6 +177,12 @@ async fn accept_connection(ws_stream: WebSocket) {
             } else if data_out == "STOP" {
                 controler.stop().unwrap();
                 dr.stop();
+                let jdata = json!({
+                    "t": "STOP"
+                });
+                let raw_json = Message::Text(jdata.to_string());
+                send_s.send(raw_json).unwrap();
+                isplayed = false;
             } else if data_out == "PING" {
                 let send_smg = json!({"t": "PONG"});
                 let raw_json = Message::Text(send_smg.to_string());

@@ -39,22 +39,25 @@ async fn handler_root() -> Response {
 async fn handler_status() -> Response {
     let a = tokio::task::spawn_blocking(move || {
         let pid = Pid::from(std::process::id() as usize);
-        let mut sys = System::new_all();
-        sys.refresh_system();
-        sys.refresh_processes();
+        let mut sys = System::new();
+        sys.refresh_all();
+        let mut memory_full_processes = 0;
         let pros = sys.process(pid).unwrap();
-        let mut newdata = Vec::new();
+        memory_full_processes += pros.memory();
         for i in sys.processes() {
-            newdata.push(json!({"name": i.1.name(), "memory": i.1.memory()}));
+            if i.1.parent().is_some_and(|x| x == pros.pid()) {
+                memory_full_processes += i.1.memory();
+            }
         }
         let out = json!({
-                                "memory":  pros.memory(), 
-                                "virtual_memory": pros.virtual_memory(),
-                            });
-
+                                "full_processes_memory": memory_full_processes,
+            });
         out
     }).await.unwrap();
-    a.to_string().into_response()
+    let mut res = a.to_string().into_response();
+    res.headers_mut().remove("Content-Type");
+    res.headers_mut().append("Content-Type", "application/json".parse().unwrap());
+    res
 }
 
 
@@ -71,13 +74,26 @@ async fn handler_ws(ws: WebSocketUpgrade) -> Response {
 
 struct Callback {
     ws: UnboundedSender<Message>,
-    data: Value
+    data: Value,
+    data_err: Value,
 }
 
 #[async_trait]
 impl EventHandler for Callback {
-    async fn act(&self, _ctx: &EventContext<'_>) -> Option<Event> {
-        self.ws.send(Message::Text(self.data.to_string())).unwrap();
+    async fn act(&self, ctx: &EventContext<'_>) -> Option<Event> {
+        match ctx {
+            EventContext::Track(ts_raw) => {
+                let ts = ts_raw.get(0).unwrap();
+                let data;
+                if !ts.0.play_time.is_zero() {
+                    data = self.data.to_string();
+                } else {
+                    data = self.data_err.to_string()
+                }
+                self.ws.send(Message::Text(data)).unwrap();
+            },
+            _ => return None,
+        }
         None
     }
 }
@@ -104,9 +120,13 @@ async fn accept_connection(ws_stream: WebSocket) {
     let jdata = json!({
         "t": "STOP"
     });
-    let mut isplayed = false;
+    let jdata_err = json!({
+        "t": "STOP_ERROR"
+    });
     let (mut _track, mut controler) = create_player(ffmpeg(" ").await.unwrap().into()); // make to stop panic when the control is already set when use
-    dr.add_global_event(Event::Track(songbird::TrackEvent::End), Callback {ws: send_s.clone(), data: jdata});
+    dr.add_global_event(Event::Track(songbird::TrackEvent::End), Callback {ws: send_s.clone(), data: jdata, data_err: jdata_err});
+
+
     let mut volume = 100;
     while let Some(msg) = read.next().await {
         if msg.is_err() { 
@@ -153,19 +173,12 @@ async fn accept_connection(ws_stream: WebSocket) {
                 dr.connect(ConnectionInfo {channel_id: Some(ChannelId(channel_id)), endpoint: endpoint.to_string(), guild_id: GuildId(guild_id), session_id: session_id.clone(), token, user_id: UserId(user_id)}).await.unwrap();
             } else if data_out == "PLAY" {
                 let dataout = data.as_str().unwrap().to_string();
-                if isplayed {
-                    let jdata = json!({
-                        "t": "STOP"
-                    });
-                    let raw_json = Message::Text(jdata.to_string());
-                    send_s.send(raw_json).unwrap();
-                    dr.stop();
-                }
+                controler.stop().unwrap();
+                dr.stop();
                 let data = ffmpeg(dataout).await.unwrap();
                 (_track, controler) = create_player(data);
                 controler.set_volume(volume as f32 / 100.0).unwrap();
                 dr.play(_track);
-                isplayed = true;
             } else if data_out == "VOLUME" {
                 let dataout = data.as_i64().unwrap();
                 volume = dataout;
@@ -182,7 +195,6 @@ async fn accept_connection(ws_stream: WebSocket) {
                 });
                 let raw_json = Message::Text(jdata.to_string());
                 send_s.send(raw_json).unwrap();
-                isplayed = false;
             } else if data_out == "PING" {
                 let send_smg = json!({"t": "PONG"});
                 let raw_json = Message::Text(send_smg.to_string());

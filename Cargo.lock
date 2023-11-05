@@ -1211,21 +1211,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ratelimit_tokio"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "axum",
- "futures-util",
- "reqwest",
- "serde_json",
- "songbird",
- "sysinfo",
- "tokio",
- "url",
-]
-
-[[package]]
 name = "rayon"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1732,6 +1717,21 @@ dependencies = [
  "url",
  "uuid",
  "xsalsa20poly1305",
+]
+
+[[package]]
+name = "songbird_node"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "axum",
+ "futures-util",
+ "reqwest",
+ "serde_json",
+ "songbird",
+ "sysinfo",
+ "tokio",
+ "url",
 ]
 
 [[package]]

@@ -15,16 +15,35 @@ use axum::{
 };
 use async_trait::async_trait;
 use songbird::{Driver, Config, ConnectionInfo, EventContext, id::{GuildId, UserId, ChannelId}, input::ffmpeg, Event, EventHandler, create_player};
+use serde::{Deserialize, Serialize};
+use lazy_static::lazy_static;
 
+lazy_static! {
+    static ref ROOT_CONFIG: ConfigFile = {
+        let file_data: String = std::fs::read_to_string("config.json").unwrap();
+        let root_config: ConfigFile = serde_json::from_str(&file_data).unwrap();
+        root_config
+    };
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ConfigFile {
+    pub bind: String,
+    pub auth: Value,
+}
 
 
 #[tokio::main]
 async fn main() {
     async fn auth<B>(req: Request<B>, next: Next<B>) -> Result<Response, StatusCode> {
         if req.uri().path() == "/" { return Err(StatusCode::OK); }
-        let auth_header = req.headers().get(http::header::AUTHORIZATION).and_then(|header| header.to_str().ok());
-        if auth_header.is_none() { return Err(StatusCode::UNAUTHORIZED); }
-        else if auth_header.unwrap() != "hi" { return Err(StatusCode::UNAUTHORIZED); }
+        if ROOT_CONFIG.auth.is_string() {            
+            let auth_header = req.headers().get(http::header::AUTHORIZATION).and_then(|header| header.to_str().ok());
+            if auth_header.is_none() { return Err(StatusCode::UNAUTHORIZED); }
+            else if auth_header.unwrap() != ROOT_CONFIG.auth.as_str().unwrap() { return Err(StatusCode::UNAUTHORIZED); }
+        } else if !ROOT_CONFIG.auth.is_null() && !ROOT_CONFIG.auth.is_string() {
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        }
         Ok(next.run(req).await)
     }
     let app = Router::new()
@@ -33,7 +52,7 @@ async fn main() {
     .route("/status", get(handler_status))
     .route("/voice", get(handler_ws))
     .layer(from_fn(auth));
-    let server_addr = "0.0.0.0:8080";
+    let server_addr = &ROOT_CONFIG.bind;
     let addr_l: SocketAddr = server_addr.parse().expect("Unable to parse socket address");
     println!("listening on {}", addr_l.to_string());
     axum::Server::bind(&addr_l)

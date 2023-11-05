@@ -9,7 +9,9 @@ use axum::{
     extract::ws::{WebSocketUpgrade, WebSocket, Message},
     routing::get,
     response::{Response, IntoResponse},
-    Router,
+    Router, http,
+    http::{Request, StatusCode},
+    middleware::{Next, from_fn},
 };
 use async_trait::async_trait;
 use songbird::{Driver, Config, ConnectionInfo, EventContext, id::{GuildId, UserId, ChannelId}, input::ffmpeg, Event, EventHandler, create_player};
@@ -18,11 +20,19 @@ use songbird::{Driver, Config, ConnectionInfo, EventContext, id::{GuildId, UserI
 
 #[tokio::main]
 async fn main() {
+    async fn auth<B>(req: Request<B>, next: Next<B>) -> Result<Response, StatusCode> {
+        if req.uri().path() == "/" { return Err(StatusCode::OK); }
+        let auth_header = req.headers().get(http::header::AUTHORIZATION).and_then(|header| header.to_str().ok());
+        if auth_header.is_none() { return Err(StatusCode::UNAUTHORIZED); }
+        else if auth_header.unwrap() != "hi" { return Err(StatusCode::UNAUTHORIZED); }
+        Ok(next.run(req).await)
+    }
     let app = Router::new()
     .route("/", get(handler_root))
     .route("/region", get(handler_region))
     .route("/status", get(handler_status))
-    .route("/voice", get(handler_ws));
+    .route("/voice", get(handler_ws))
+    .layer(from_fn(auth));
     let server_addr = "0.0.0.0:8080";
     let addr_l: SocketAddr = server_addr.parse().expect("Unable to parse socket address");
     println!("listening on {}", addr_l.to_string());
@@ -32,8 +42,8 @@ async fn main() {
     .unwrap();
 }
 
-async fn handler_root() -> Response {
-    "".into_response()
+async fn handler_root() -> StatusCode {
+    StatusCode::OK
 }
 
 async fn handler_status() -> Response {

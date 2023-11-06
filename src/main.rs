@@ -34,20 +34,20 @@ struct ConfigFile {
     pub auth: Value,
 }
 
+async fn auth<B>(req: Request<B>, next: Next<B>) -> Result<Response, StatusCode> {
+    if req.uri().path() == "/" { return Err(StatusCode::OK); }
+    if ROOT_CONFIG.auth.is_string() {            
+        let auth_header = req.headers().get(http::header::AUTHORIZATION).and_then(|header| header.to_str().ok());
+        if auth_header.is_none() { return Err(StatusCode::UNAUTHORIZED); }
+        else if auth_header.unwrap() != ROOT_CONFIG.auth.as_str().unwrap() { return Err(StatusCode::UNAUTHORIZED); }
+    } else if !ROOT_CONFIG.auth.is_null() && !ROOT_CONFIG.auth.is_string() {
+        return Err(StatusCode::INTERNAL_SERVER_ERROR);
+    }
+    Ok(next.run(req).await)
+}
 
 #[tokio::main]
 async fn main() {
-    async fn auth<B>(req: Request<B>, next: Next<B>) -> Result<Response, StatusCode> {
-        if req.uri().path() == "/" { return Err(StatusCode::OK); }
-        if ROOT_CONFIG.auth.is_string() {            
-            let auth_header = req.headers().get(http::header::AUTHORIZATION).and_then(|header| header.to_str().ok());
-            if auth_header.is_none() { return Err(StatusCode::UNAUTHORIZED); }
-            else if auth_header.unwrap() != ROOT_CONFIG.auth.as_str().unwrap() { return Err(StatusCode::UNAUTHORIZED); }
-        } else if !ROOT_CONFIG.auth.is_null() && !ROOT_CONFIG.auth.is_string() {
-            return Err(StatusCode::INTERNAL_SERVER_ERROR);
-        }
-        Ok(next.run(req).await)
-    }
     let app = Router::new()
     .route("/", get(handler_root))
     .route("/region", get(handler_region))

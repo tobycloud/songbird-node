@@ -16,12 +16,14 @@ use axum::{
 use async_trait::async_trait;
 use songbird::{Driver, Config, ConnectionInfo, EventContext, id::{GuildId, UserId, ChannelId}, input::ffmpeg, Event, EventHandler, create_player};
 use serde::{Deserialize, Serialize};
+use json_comments::StripComments;
 use lazy_static::lazy_static;
 
 lazy_static! {
     static ref ROOT_CONFIG: ConfigFile = {
-        let file_data: String = std::fs::read_to_string("config.json").unwrap();
-        let root_config: ConfigFile = serde_json::from_str(&file_data).unwrap();
+        let file_data = std::fs::read("config.json").unwrap();
+        let stripped = StripComments::new(file_data.as_slice());
+        let root_config: ConfigFile = serde_json::from_reader(stripped).unwrap();
         root_config
     };
 }

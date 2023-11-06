@@ -10,6 +10,7 @@ tokio = { version = "1", features = ["full"] }
 url = "*"
 futures-util = "*"
 serde_json = "*"
+json_comments = "*"
 lazy_static = "1.4.0"
 serde = { version = "1.0", features = ["derive"] }
 songbird = { version = "0.3.2", features = ["driver"] }

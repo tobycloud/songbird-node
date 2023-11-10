@@ -1,0 +1,95 @@
+name: Self-test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  release:
+    name: Release - ${{ matrix.platform.release_for }}
+    strategy:
+      matrix:
+        platform:
+            # linux
+          - release_for: Linux-ARM
+            os: ubuntu-20.04
+            target: aarch64-unknown-linux-gnu
+            bin: songbird_node
+            name: aarch64-unknown-linux-gnu.zip
+            command: both
+
+          - release_for: Linux-i686
+            os: ubuntu-20.04
+            target: i686-unknown-linux-gnu
+            bin: songbird_node
+            name: i686-unknown-linux-gnu.zip
+            command: both
+
+          - release_for: Linux-x86_64
+            os: ubuntu-20.04
+            target: x86_64-unknown-linux-gnu
+            bin: songbird_node
+            name: x86_64-unknown-linux-gnu.zip
+            command: both
+
+          # win
+          
+          - release_for: Windows-x86_64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bin: songbird_node.exe
+            name: x86_64-pc-windows-msvc.zip
+            command: both
+
+          - release_for: Windows-i686
+            os: windows-latest
+            target: i686-pc-windows-msvc
+            bin: songbird_node.exe
+            name: i686-pc-windows-msvc.zip
+            command: both
+
+          - release_for: Windows-ARM
+            os: windows-latest
+            target: aarch64-pc-windows-msvc
+            bin: songbird_node.exe
+            name: aarch64-pc-windows-msvc.zip
+            command: both
+
+          # mac
+
+          - release_for: macOS-x86_64
+            os: macOS-latest
+            target: x86_64-apple-darwin
+            bin: songbird_node
+            name: x86_64-apple-darwin.zip
+            command: both
+
+          - release_for: macOS-i686
+            os: macOS-latest
+            target: i686-apple-darwin
+            bin: songbird_node
+            name: i686-apple-darwin.zip
+            command: both
+            
+          - release_for: macOS-ARM
+            os: macOS-latest
+            target: aarch64-apple-darwin
+            bin: songbird_node
+            name: aarch64-apple-darwin.zip
+            command: both
+          
+
+    runs-on: ${{ matrix.platform.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - run: mkdir -p /artifact
+      - name: Build binary
+        uses: houseabsolute/actions-rust-cross@v0
+        with:
+          command: ${{ matrix.platform.command }}
+          target: ${{ matrix.platform.target }}
+          args: "--locked --release"
+          strip: true
+          working-directory: "/artifact"
+      

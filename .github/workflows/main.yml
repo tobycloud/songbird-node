@@ -102,10 +102,10 @@ jobs:
 
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             7z a "$dirname.zip" "$dirname"
-            mv "$dirname.zip" artifact
+            mv $dirname.zip artifact
           else
             tar -czf "$dirname.tar.gz" "$dirname"
-            mv "$dirname.tar.gz" artifact
+            mv $dirname.tar.gz artifact
           fi
       - uses: actions/upload-artifact@v3
         with:

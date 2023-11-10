@@ -2,7 +2,6 @@ name: Self-test
 
 on:
   push:
-  pull_request:
 
 jobs:
   release:
@@ -83,7 +82,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - run: mkdir -p /artifact
+      - run: mkdir -p ./artifact
       - name: Build binary
         uses: houseabsolute/actions-rust-cross@v0
         with:
@@ -91,5 +90,5 @@ jobs:
           target: ${{ matrix.platform.target }}
           args: "--locked --release"
           strip: true
-          working-directory: "/artifact"
+          working-directory: "./artifact"
       

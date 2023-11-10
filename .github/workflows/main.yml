@@ -5,7 +5,7 @@ on:
 
 jobs:
   release:
-    name: Release - ${{ matrix.platform.release_for }}
+    name: Release - ${{ matrix.release_for }}
     strategy:
       matrix:
         include:

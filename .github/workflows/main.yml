@@ -76,10 +76,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Get the release version from the tag
-        shell: bash
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-
+      - name: Install Openssl
+        run: apt-get install pkg-config libssl-dev
+      
       - name: Install Rust
         # Or @nightly if you want
         uses: dtolnay/rust-toolchain@stable
@@ -91,7 +90,7 @@ jobs:
       - name: Build
         uses: actions-rs/cargo@v1
         with:
-          # use-cross: true
+          use-cross: true
           command: build
           args: --verbose --release --target ${{ matrix.target }}
 

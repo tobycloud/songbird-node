@@ -63,13 +63,6 @@ jobs:
             name: x86_64-apple-darwin.zip
             command: both
 
-          - release_for: macOS-i686
-            os: macOS-latest
-            target: i686-apple-darwin
-            bin: songbird_node
-            name: i686-apple-darwin.zip
-            command: both
-            
           - release_for: macOS-ARM
             os: macOS-latest
             target: aarch64-apple-darwin

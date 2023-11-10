@@ -65,7 +65,7 @@ jobs:
             command: both
           
 
-    runs-on: pi
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3

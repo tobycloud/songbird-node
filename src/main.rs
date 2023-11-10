@@ -23,7 +23,7 @@ lazy_static! {
     static ref ROOT_CONFIG: ConfigFile = {
         let file_data = std::fs::read("config.json").unwrap();
         let stripped = StripComments::new(file_data.as_slice());
-        let root_config: ConfigFile = serde_json::from_reader(stripped).unwrap();
+        let root_config: ConfigFile = serde_json::from_reader(stripped).expect("Config Error: Couldn't parse config");
         root_config
     };
 }

@@ -47,13 +47,6 @@ jobs:
             name: i686-pc-windows-msvc.zip
             command: both
 
-          - release_for: Windows-ARM
-            os: windows-latest
-            target: aarch64-pc-windows-msvc
-            bin: songbird_node.exe
-            name: aarch64-pc-windows-msvc.zip
-            command: both
-
           # mac
 
           - release_for: macOS-x86_64

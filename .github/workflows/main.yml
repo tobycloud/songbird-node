@@ -1,0 +1,113 @@
+name: Build
+
+on:
+  push:
+
+jobs:
+  release:
+    name: Release - ${{ matrix.release_for }}
+    strategy:
+      matrix:
+        include:
+            # linux
+          - release_for: Linux-ARM
+            os: ubuntu-20.04
+            target: aarch64-unknown-linux-gnu
+            bin: songbird_node
+            name: aarch64-unknown-linux-gnu.zip
+            command: both
+
+          - release_for: Linux-i686
+            os: ubuntu-20.04
+            target: i686-unknown-linux-gnu
+            bin: songbird_node
+            name: i686-unknown-linux-gnu.zip
+            command: both
+
+          - release_for: Linux-x86_64
+            os: ubuntu-20.04
+            target: x86_64-unknown-linux-gnu
+            bin: songbird_node
+            name: x86_64-unknown-linux-gnu.zip
+            command: both
+
+          # win
+          
+          - release_for: Windows-x86_64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bin: songbird_node.exe
+            name: x86_64-pc-windows-msvc.zip
+            command: both
+
+          - release_for: Windows-i686
+            os: windows-latest
+            target: i686-pc-windows-msvc
+            bin: songbird_node.exe
+            name: i686-pc-windows-msvc.zip
+            command: both
+
+          # mac
+
+          - release_for: macOS-x86_64
+            os: macOS-latest
+            target: x86_64-apple-darwin
+            bin: songbird_node
+            name: x86_64-apple-darwin.zip
+            command: both
+
+          - release_for: macOS-ARM
+            os: macOS-latest
+            target: aarch64-apple-darwin
+            bin: songbird_node
+            name: aarch64-apple-darwin.zip
+            command: both
+          
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      
+      - name: Install Rust
+        # Or @nightly if you want
+        uses: dtolnay/rust-toolchain@stable
+        # Arguments to pass in
+        with:
+          # Make Rust compile to our target (defined in the matrix)
+          targets: ${{ matrix.target }}
+
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --verbose --release --target ${{ matrix.target }}
+
+      - name: Build archive
+        shell: bash
+        run: |
+          # Replace with the name of your binary
+          binary_name="songbird_node"
+
+          dirname="${{ matrix.target }}"
+          mkdir "$dirname"
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            mv "target/${{ matrix.target }}/release/$binary_name.exe" "$dirname"
+          else
+            mv "target/${{ matrix.target }}/release/$binary_name" "$dirname"
+          fi
+
+          mkdir artifact
+
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            7z a "$dirname.zip" "$dirname"
+            mv "$dirname.zip" artifact
+          else
+            tar -czf "$dirname.tar.gz" "$dirname"
+            mv "$dirname.tar.gz" artifact
+          fi
+      - uses: actions/upload-artifact@v3
+        with:
+          name: artifact-out put
+          path: artifact/*

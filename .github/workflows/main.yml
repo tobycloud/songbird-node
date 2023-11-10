@@ -75,13 +75,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - run: mkdir -p ./artifact
-      - name: Build binary
-        uses: houseabsolute/actions-rust-cross@v0
+      - name: Compile
+        id: compile
+        uses: rust-build/rust-build.action@v1.4.4
         with:
-          command: ${{ matrix.platform.command }}
-          target: ${{ matrix.platform.target }}
-          args: "--locked --release"
-          strip: true
-          working-directory: "./artifact"
+          RUSTTARGET: ${{ matrix.platform.target }}
+          UPLOAD_MODE: none
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: Binary
+          path: |
+            ${{ steps.compile.outputs.BUILT_ARCHIVE }}
+            ${{ steps.compile.outputs.BUILT_CHECKSUM }}
       

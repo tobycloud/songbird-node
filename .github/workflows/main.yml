@@ -1,4 +1,4 @@
-name: Self-test
+name: Build
 
 on:
   push:
@@ -111,6 +111,3 @@ jobs:
         with:
           name: artifact-output
           path: artifact/*
-
-
-          

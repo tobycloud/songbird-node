@@ -88,7 +88,7 @@ jobs:
         shell: bash
         run: |
           # Replace with the name of your binary
-          binary_name="<BINARY_NAME>"
+          binary_name="songbird_node"
 
           dirname="$binary_name-${{ env.VERSION }}-${{ matrix.target }}"
           mkdir "$dirname"
@@ -98,10 +98,17 @@ jobs:
             mv "target/${{ matrix.target }}/release/$binary_name" "$dirname"
           fi
 
+          mkdir -p artifact
+
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             7z a "$dirname.zip" "$dirname"
-            echo "ASSET=$dirname.zip" >> $GITHUB_ENV
+            mv ASSET=$dirname.zip artifact
           else
             tar -czf "$dirname.tar.gz" "$dirname"
-            echo "ASSET=$dirname.tar.gz" >> $GITHUB_ENV
+            mv $dirname.tar.gz artifact
           fi
+      - uses: actions/upload-artifact@v3
+        with:
+          name: artifact-output
+          path: artifact/*
+

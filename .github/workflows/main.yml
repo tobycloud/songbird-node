@@ -1,7 +1,8 @@
-name: Self-test
+name: Build
 
 on:
-  push:
+  release:
+    types: [created]
 
 jobs:
   release:
@@ -89,26 +90,13 @@ jobs:
         run: |
           # Replace with the name of your binary
           binary_name="songbird_node"
-
-          dirname="${{ matrix.target }}"
-          mkdir "$dirname"
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            mv "target/${{ matrix.target }}/release/$binary_name.exe" "$dirname"
-          else
-            mv "target/${{ matrix.target }}/release/$binary_name" "$dirname"
-          fi
-
           mkdir artifact
-
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            7z a "$dirname.zip" "$dirname"
-            mv ASSET=$dirname.zip artifact
+            mv "target/${{ matrix.target }}/release/$binary_name.exe" artifact
           else
-            tar -czf "$dirname.tar.gz" "$dirname"
-            mv $dirname.tar.gz artifact
+            mv "target/${{ matrix.target }}/release/$binary_name" artifact
           fi
       - uses: actions/upload-artifact@v3
         with:
-          name: artifact-output
+          name: artifact-${{ matrix.release_for }}
           path: artifact/*
-

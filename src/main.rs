@@ -208,16 +208,16 @@ async fn accept_connection(ws_stream: WebSocket) {
                 dr.stop();
                 let data = ffmpeg(dataout).await.unwrap();
                 (_track, controler) = create_player(data);
-                controler.set_volume(volume as f32 / 100.0).unwrap();
+                let _ = controler.set_volume(volume as f32 / 100.0);
                 dr.play(_track);
             } else if data_out == "VOLUME" {
                 let dataout = data.as_i64().unwrap();
                 volume = dataout;
-                controler.set_volume(volume as f32 / 100.0).unwrap();
+                let _ = controler.set_volume(volume as f32 / 100.0);
             } else if data_out == "PAUSE" {
-                controler.pause().unwrap();
+                let _ = controler.pause();
             } else if data_out == "RESUME" {
-                controler.play().unwrap();
+                let _ = controler.play();
             } else if data_out == "STOP" {
                 controler.stop().unwrap();
                 dr.stop();

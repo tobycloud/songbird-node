@@ -221,11 +221,6 @@ async fn accept_connection(ws_stream: WebSocket) {
             } else if data_out == "STOP" {
                 controler.stop().unwrap();
                 dr.stop();
-                let jdata = json!({
-                    "t": "STOP"
-                });
-                let raw_json = Message::Text(jdata.to_string());
-                send_s.send(raw_json).unwrap();
             } else if data_out == "PING" {
                 let send_smg = json!({"t": "PONG"});
                 let raw_json = Message::Text(send_smg.to_string());

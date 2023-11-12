@@ -1,6 +1,8 @@
-use core::f32;
+mod ffmpeg_support;
 
+use core::f32;
 use std::net::SocketAddr;
+use ffmpeg_support::ffmpeg_preconfig;
 use futures_util::{SinkExt, StreamExt};
 use serde_json::{json, Value};
 use sysinfo::{System, SystemExt, Pid, ProcessExt};
@@ -14,7 +16,7 @@ use axum::{
     middleware::{Next, from_fn},
 };
 use async_trait::async_trait;
-use songbird::{Driver, Config, ConnectionInfo, EventContext, id::{GuildId, UserId, ChannelId}, input::ffmpeg, Event, EventHandler, create_player};
+use songbird::{Driver, Config, ConnectionInfo, EventContext, id::{GuildId, UserId, ChannelId}, Event, EventHandler, create_player};
 use serde::{Deserialize, Serialize};
 use json_comments::StripComments;
 use lazy_static::lazy_static;
@@ -154,7 +156,7 @@ async fn accept_connection(ws_stream: WebSocket) {
     let jdata_err = json!({
         "t": "STOP_ERROR"
     });
-    let (mut _track, mut controler) = create_player(ffmpeg(" ").await.unwrap().into()); // make to stop panic when the control is already set when use
+    let (mut _track, mut controler) = create_player(ffmpeg_preconfig(" ").await.unwrap().into()); // make to stop panic when the control is already set when use
     dr.add_global_event(Event::Track(songbird::TrackEvent::End), Callback {ws: send_s.clone(), data: jdata, data_err: jdata_err});
 
 
@@ -206,7 +208,7 @@ async fn accept_connection(ws_stream: WebSocket) {
                 let dataout = data.as_str().unwrap().to_string();
                 controler.stop().unwrap();
                 dr.stop();
-                let data = ffmpeg(dataout).await.unwrap();
+                let data = ffmpeg_preconfig(dataout).await.unwrap();
                 (_track, controler) = create_player(data);
                 let _ = controler.set_volume(volume as f32 / 100.0);
                 dr.play(_track);

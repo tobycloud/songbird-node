@@ -71,7 +71,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      
+      - name: Add SHORT_SHA env property with commit short sha
+        run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
       - name: Install Rust
         # Or @nightly if you want
         uses: dtolnay/rust-toolchain@stable
@@ -106,7 +107,7 @@ jobs:
         with:
           name: Release ${{ github.sha }}
           commit: main
-          tag:  dev-${{ github.sha }}
+          tag:  dev-${SHORT_SHA}
           prerelease: true
           artifacts: artifact/*
           body: https://github.com/fantasybot-red/songbird-node/tree/${{ github.sha }}

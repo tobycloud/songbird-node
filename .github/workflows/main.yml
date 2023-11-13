@@ -100,11 +100,12 @@ jobs:
           else
             mv "target/${{ matrix.target }}/release/$binary_name" artifact/$binary_name-${{ matrix.release_for }}
           fi
-      - uses: actions/upload-artifact@v3
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
         with:
           name: Build
           path: artifact/*
-            - name: Create a release
+
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
         with:

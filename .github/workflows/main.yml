@@ -1,8 +1,8 @@
-name: Build
+name: Build && Release
 
 on:
   push:
-
+  
 permissions: write-all
 
 concurrency:

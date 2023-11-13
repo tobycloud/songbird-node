@@ -15,6 +15,7 @@ jobs:
     strategy:
       matrix:
         include:
+        
             # linux
           - release_for: Linux-ARM
             os: ubuntu-20.04
@@ -78,7 +79,7 @@ jobs:
         with:
           fetch-depth: 0
         
-      - name: Set outputs
+      - name: Get Shout Commit ID
         id: vars
         shell: bash
         run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT

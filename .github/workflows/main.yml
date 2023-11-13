@@ -73,14 +73,8 @@ jobs:
         uses: actions/checkout@v3
       - name: Set outputs
         id: vars
-        run: |
-          binary_name="songbird_node"
-          mkdir artifact
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            echo "sha_short=$("${{ github.sha }}".SubString(0, 8))" >> $env:GITHUB_OUTPUT
-          else
-            echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-          fi
+        shell: bash
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
       - name: Install Rust
         # Or @nightly if you want
         uses: dtolnay/rust-toolchain@stable

@@ -102,6 +102,8 @@ jobs:
       - uses: ncipollo/release-action@v1
         with:
           name: Release ${{ github.sha }}
+          commit: main
+          tag: Dev ${{ github.sha }}
           prerelease: true
           artifacts: artifact/*
           body: https://github.com/fantasybot-red/songbird-node/tree/${{ github.sha }}

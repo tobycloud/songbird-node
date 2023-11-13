@@ -109,9 +109,18 @@ jobs:
         with:
           name: Build
           path: artifact/*
-
-      - name: Upload binaries to release
+      - name: 'Get Previous tag'
+        id: previoustag
+        uses: "WyriHaximus/github-action-get-previous-tag@v1"
+      - name: Delete Old Release
+        uses: dev-drprasad/delete-tag-and-release@v1.0
+        with:
+          tag_name: ${{ steps.previoustag.outputs.tag }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          delete_release: true
+      - name: Upload to release
         uses: svenstaro/upload-release-action@v2
+        if: always()
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: artifact/*

@@ -69,12 +69,15 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     steps:
+    
       - name: Checkout
         uses: actions/checkout@v3
+        
       - name: Set outputs
         id: vars
         shell: bash
         run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        
       - name: Install Rust
         # Or @nightly if you want
         uses: dtolnay/rust-toolchain@stable
@@ -89,6 +92,7 @@ jobs:
           use-cross: true
           command: build
           args: --verbose --release --target ${{ matrix.target }}
+          
       - name: Build archive
         shell: bash
         run: |
@@ -103,14 +107,17 @@ jobs:
           fi
           mv "config.json" zip_cp
           7z a "artifact/${{ matrix.release_for }}.zip" "zip_cp/*"
+          
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
         with:
           name: Build
           path: artifact/*
+          
       - name: 'Get Previous tag'
         id: previoustag
         uses: "WyriHaximus/github-action-get-previous-tag@v1"
+        
       - name: Delete Old Release
         if: ${{ startsWith(steps.previoustag.outputs.tag, 'dev-') }}
         continue-on-error: true
@@ -119,6 +126,7 @@ jobs:
           tag_name: ${{ steps.previoustag.outputs.tag }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           delete_release: true
+          
       - name: Upload to release
         uses: svenstaro/upload-release-action@v2
         with:

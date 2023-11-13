@@ -73,7 +73,14 @@ jobs:
         uses: actions/checkout@v3
       - name: Set outputs
         id: vars
-        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        run: |
+          binary_name="songbird_node"
+          mkdir artifact
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            echo "sha_short=$("${{ github.sha }}".SubString(0, 8))" >> $env:GITHUB_OUTPUT
+          else
+            echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          fi
       - name: Install Rust
         # Or @nightly if you want
         uses: dtolnay/rust-toolchain@stable
@@ -94,12 +101,15 @@ jobs:
         run: |
           # Replace with the name of your binary
           binary_name="songbird_node"
+          mkdir zip_cp
           mkdir artifact
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            mv "target/${{ matrix.target }}/release/$binary_name.exe" artifact/$binary_name-${{ matrix.release_for }}.exe
+            mv "target/${{ matrix.target }}/release/$binary_name.exe" zip_cp
           else
-            mv "target/${{ matrix.target }}/release/$binary_name" artifact/$binary_name-${{ matrix.release_for }}
+            mv "target/${{ matrix.target }}/release/$binary_name" zip_cp
           fi
+          mv "config.json" zip_cp
+          7z a "artifact/${{ matrix.target }}.zip" "zip_cp"
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
         with:

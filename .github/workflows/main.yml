@@ -89,10 +89,8 @@ jobs:
           use-cross: true
           command: build
           args: --verbose --release --target ${{ matrix.target }}
-
       - name: Build archive
         shell: bash
-        id: barchive
         run: |
           # Replace with the name of your binary
           binary_name="songbird_node"
@@ -105,9 +103,6 @@ jobs:
           fi
           mv "config.json" zip_cp
           7z a "artifact/${{ matrix.release_for }}.zip" "zip_cp/*"
-
-
-          
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
         with:
@@ -117,16 +112,12 @@ jobs:
         id: previoustag
         uses: "WyriHaximus/github-action-get-previous-tag@v1"
       - name: Delete Old Release
-        if: ${{ always() }}
+        continue-on-error: true
         uses: dev-drprasad/delete-tag-and-release@v1.0
         with:
           tag_name: ${{ steps.previoustag.outputs.tag }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           delete_release: true
-
-
-
-          
       - name: Upload to release
         uses: svenstaro/upload-release-action@v2
         with:

@@ -139,6 +139,6 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: artifact/*
           asset_name: ${{ matrix.asset_name }}
-          tag: dev-${{ steps.vars.outputs.sha_short }}
+          tag: ${{ startsWith(github.event.head_commit.message, 'ver') && github.event.head_commit.message || 'dev-${{ steps.vars.outputs.sha_short }}' }}
           file_glob: true
-          prerelease: true
+          prerelease: ${{ !startsWith(github.event.head_commit.message, 'ver') }}

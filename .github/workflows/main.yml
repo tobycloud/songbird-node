@@ -99,3 +99,9 @@ jobs:
         with:
           name: artifact-${{ matrix.release_for }}
           path: artifact/*
+      - uses: ncipollo/release-action@v1
+        with:
+          name: Release ${{ github.sha }}
+          prerelease: true
+          artifacts: artifact/*
+          body: https://github.com/fantasybot-red/songbird-node/tree/${{ github.sha }}

@@ -6,7 +6,7 @@ on:
 permissions: write-all
 
 concurrency:
-  group: ${{ github.workflow }}
+  group: Build && Release
   cancel-in-progress: true
 
 jobs:

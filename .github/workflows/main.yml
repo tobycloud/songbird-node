@@ -96,27 +96,20 @@ jobs:
           binary_name="songbird_node"
           mkdir artifact
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            mv "target/${{ matrix.target }}/release/$binary_name.exe" artifact
+            mv "target/${{ matrix.target }}/release/$binary_name.exe" artifact/$binary_name-${{ matrix.release_for }}.exe
           else
-            mv "target/${{ matrix.target }}/release/$binary_name" artifact
+            mv "target/${{ matrix.target }}/release/$binary_name" artifact/$binary_name-${{ matrix.release_for }}
           fi
       - uses: actions/upload-artifact@v3
         with:
-          name: artifact-${{ matrix.release_for }}
+          name: Build
           path: artifact/*
-          
-  release:
-    name: "Pre-Release"
-    runs-on: "ubuntu-latest"
-    steps:
-      - uses: actions/download-artifact@v3
+            - name: Create a release
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
         with:
-          path: artifacts
-      - uses: "marvinpinto/action-automatic-releases@latest"
-        with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "latest"
-          prerelease: true
-          title: "Development Build"
-          files: |
-            artifacts/*
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: artifact/*
+          asset_name: ${{ matrix.asset_name }}
+          tag: ${{ github.ref }}
+          file_glob: true

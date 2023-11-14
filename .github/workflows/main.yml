@@ -112,7 +112,7 @@ jobs:
             mv "target/${{ matrix.target }}/release/$binary_name" zip_cp
           fi
           mv "config.json" zip_cp
-          7z a "artifact/${{ matrix.release_for }}.zip" "zip_cp/*"
+          7z a "artifact/${{ matrix.release_for }}.zip" "./zip_cp/*"
           
       - name: Upload Artifact
         uses: actions/upload-artifact@v3

@@ -6,7 +6,7 @@ on:
 permissions: write-all
 
 concurrency:
-  group: Build && Release
+  group: ${{ github.workflow }}-${{ startsWith(github.event.head_commit.message, 'ver') && github.event.head_commit.message || 'dev' }}
   cancel-in-progress: true
 
 jobs:

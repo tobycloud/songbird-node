@@ -1,14 +1,21 @@
-name: Build
+name: Build && Release
 
 on:
   push:
+  
+permissions: write-all
+
+concurrency:
+  group: ${{ github.workflow }}-${{ startsWith(github.event.head_commit.message, 'ver') && github.event.head_commit.message || 'dev' }}
+  cancel-in-progress: true
 
 jobs:
-  release:
-    name: Release - ${{ matrix.release_for }}
+  Build:
+    name: Build - ${{ matrix.release_for }}
     strategy:
       matrix:
         include:
+        
             # linux
           - release_for: Linux-ARM
             os: ubuntu-20.04
@@ -66,9 +73,17 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     steps:
+    
       - name: Checkout
         uses: actions/checkout@v3
-      
+        with:
+          fetch-depth: 0
+        
+      - name: Get Shout Commit ID
+        id: vars
+        shell: bash
+        run: echo "sha_short=dev-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        
       - name: Install Rust
         # Or @nightly if you want
         uses: dtolnay/rust-toolchain@stable
@@ -83,19 +98,47 @@ jobs:
           use-cross: true
           command: build
           args: --verbose --release --target ${{ matrix.target }}
-
+          
       - name: Build archive
         shell: bash
         run: |
           # Replace with the name of your binary
           binary_name="songbird_node"
+          mkdir zip_cp
           mkdir artifact
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            mv "target/${{ matrix.target }}/release/$binary_name.exe" artifact
+            mv "target/${{ matrix.target }}/release/$binary_name.exe" zip_cp
           else
-            mv "target/${{ matrix.target }}/release/$binary_name" artifact
+            mv "target/${{ matrix.target }}/release/$binary_name" zip_cp
           fi
-      - uses: actions/upload-artifact@v3
+          mv "config.json" zip_cp
+          7z a "artifact/${{ matrix.release_for }}.zip" "./zip_cp/*"
+          
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
         with:
-          name: artifact-${{ matrix.release_for }}
+          name: Build
           path: artifact/*
+          
+      - name: 'Get Previous tag'
+        id: previoustag
+        uses: "WyriHaximus/github-action-get-previous-tag@v1"
+        
+      - name: Delete Old Release
+        if: ${{ startsWith(steps.previoustag.outputs.tag, 'dev-') }}
+        continue-on-error: true
+        uses: dev-drprasad/delete-tag-and-release@v1.0
+        with:
+          tag_name: ${{ steps.previoustag.outputs.tag }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          delete_release: true
+          
+      - name: Upload to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: artifact/*
+          asset_name: ${{ matrix.asset_name }}
+          tag: ${{ startsWith(github.event.head_commit.message, 'ver') && github.event.head_commit.message || steps.vars.outputs.sha_short }}
+          file_glob: true
+          prerelease: ${{ !startsWith(github.event.head_commit.message, 'ver') }}

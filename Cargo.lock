@@ -2045,7 +2045,7 @@ dependencies = [
 
 [[package]]
 name = "songbird_node"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "async-trait",
  "axum",

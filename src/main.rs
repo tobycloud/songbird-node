@@ -1,4 +1,5 @@
 mod ffmpeg_support;
+mod youtube_supprt;
 
 use core::f32;
 use std::net::SocketAddr;
@@ -20,6 +21,7 @@ use songbird::{Driver, Config, ConnectionInfo, EventContext, id::{GuildId, UserI
 use serde::{Deserialize, Serialize};
 use json_comments::StripComments;
 use lazy_static::lazy_static;
+use youtube_supprt::youtube_modun;
 
 lazy_static! {
     static ref ROOT_CONFIG: ConfigFile = {
@@ -205,11 +207,29 @@ async fn accept_connection(ws_stream: WebSocket) {
                 dr.leave();
                 dr.connect(ConnectionInfo {channel_id: Some(ChannelId(channel_id)), endpoint: endpoint.to_string(), guild_id: GuildId(guild_id), session_id: session_id.clone(), token, user_id: UserId(user_id)}).await.unwrap();
             } else if data_out == "PLAY" {
-                let dataout = data.as_str().unwrap().to_string();
+                let dataout = data["url"].as_str().unwrap().to_string();
                 controler.stop().unwrap();
                 dr.stop();
-                let data = ffmpeg_preconfig(dataout).await.unwrap();
-                (_track, controler) = create_player(data);
+                let data_input;
+                if data["type"].is_string() {
+                    let jdata_err = json!({
+                        "t": "STOP_ERROR"
+                    });
+                    if data["type"].as_str().unwrap() == "youtube" {
+                        let data_input_raw = youtube_modun(dataout).await;
+                        if data_input_raw.is_err() { 
+                            let _ = send_s.send(Message::Text(jdata_err.to_string())); 
+                            continue;
+                        }
+                        data_input = data_input_raw.unwrap();
+                    } else {
+                        let _ = send_s.send(Message::Text(jdata_err.to_string()));
+                        continue;
+                    }
+                } else {
+                    data_input = ffmpeg_preconfig(dataout).await.unwrap(); 
+                }
+                (_track, controler) = create_player(data_input);
                 let _ = controler.set_volume(volume as f32 / 100.0);
                 dr.play(_track);
             } else if data_out == "VOLUME" {

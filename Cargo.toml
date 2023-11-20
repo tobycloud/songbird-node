@@ -19,4 +19,4 @@ axum = {version = "0.6", features=["ws"]}
 reqwest = "0.11"
 sysinfo = "0.29.10"
 openssl = { version = "0.10", features = ["vendored"] }
-rustube = {git = "https://github.com/thedtvn/rustube"}
+rustube = {git = "https://github.com/thedtvn/rustube" , rev = "372c5aeddb4403032f69ac9dbe621a4f61a798af"}

@@ -1678,7 +1678,7 @@ dependencies = [
 [[package]]
 name = "rustube"
 version = "0.6.0"
-source = "git+https://github.com/thedtvn/rustube#6b8cef5bcdb678363668e466f64d7b4173df1120"
+source = "git+https://github.com/thedtvn/rustube?rev=372c5aeddb4403032f69ac9dbe621a4f61a798af#372c5aeddb4403032f69ac9dbe621a4f61a798af"
 dependencies = [
  "bytes",
  "cfg-if",

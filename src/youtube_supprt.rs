@@ -21,9 +21,15 @@ pub async fn youtube_modun(url: String) -> Result<Input> {
         return Err(Error::YouTubeDlProcessing(Value::from("Can not Descramble Video")));
     }
     let v = v.unwrap();
-    let out = v.best_audio_mix();
-    if out.is_none() {
-        return Err(Error::YouTubeDlProcessing(Value::from("Can not find audio in video")));
+    let mut best_audio_raw = v.best_audio();
+    
+    if best_audio_raw.is_none() {
+        best_audio_raw = v.best_audio_mix();
+        if best_audio_raw.is_none() { 
+            return Err(Error::YouTubeDlProcessing(Value::from("Can not find audio in video")));
+        }
     }
-    ffmpeg_preconfig(out.unwrap().signature_cipher.url.as_str()).await
+    let out = best_audio_raw.unwrap();
+    println!("{}", out.signature_cipher.url);
+    ffmpeg_preconfig(out.signature_cipher.url.as_str()).await
 }

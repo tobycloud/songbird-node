@@ -159,6 +159,7 @@ async fn accept_connection(ws_stream: WebSocket) {
         "t": "STOP_ERROR"
     });
     let (mut _track, mut controler) = create_player(ffmpeg_preconfig(" ").await.unwrap().into()); // make to stop panic when the control is already set when use
+    controler.stop();
     dr.add_global_event(Event::Track(songbird::TrackEvent::End), Callback {ws: send_s.clone(), data: jdata, data_err: jdata_err});
 
 
@@ -208,7 +209,7 @@ async fn accept_connection(ws_stream: WebSocket) {
                 dr.connect(ConnectionInfo {channel_id: Some(ChannelId(channel_id)), endpoint: endpoint.to_string(), guild_id: GuildId(guild_id), session_id: session_id.clone(), token, user_id: UserId(user_id)}).await.unwrap();
             } else if data_out == "PLAY" {
                 let dataout = data["url"].as_str().unwrap().to_string();
-                controler.stop().unwrap();
+                let _ = controler.stop();
                 dr.stop();
                 let data_input;
                 if data["type"].is_string() {

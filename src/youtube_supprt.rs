@@ -30,6 +30,5 @@ pub async fn youtube_modun(url: String) -> Result<Input> {
         }
     }
     let out = best_audio_raw.unwrap();
-    println!("{}", out.signature_cipher.url);
     ffmpeg_preconfig(out.signature_cipher.url.as_str()).await
 }

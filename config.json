@@ -1,5 +1,5 @@
 {
     "bind": "0.0.0.0:8080",
-    "auth": "hi"
+    "auth": null
 }
 // set null for no authentication and set string for authentication headers password

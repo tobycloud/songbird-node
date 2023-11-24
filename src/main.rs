@@ -72,20 +72,23 @@ async fn handler_root() -> StatusCode {
 }
 
 async fn handler_status() -> Response {
+    let youtube_status = !reqwest::get("https://manifest.googlevideo.com/api/manifest/hls_playlist/").await.unwrap().status().eq(&StatusCode::TOO_MANY_REQUESTS);
     let a = tokio::task::spawn_blocking(move || {
         let pid = Pid::from(std::process::id() as usize);
         let mut sys = System::new();
         sys.refresh_all();
-        let mut memory_full_processes = 0;
+        let mut player_cout = 0;
         let pros = sys.process(pid).unwrap();
-        memory_full_processes += pros.memory();
-        for i in sys.processes() {
-            if i.1.parent().is_some_and(|x| x == pros.pid()) {
-                memory_full_processes += i.1.memory();
+        for i in sys.processes_by_name("ffmpeg") {
+            if i.parent().is_some_and(|x| x == pros.pid()) {
+                player_cout += 1;
             }
         }
+        if !youtube_status {
+            player_cout += 1e99 as i32;
+        }
         let out = json!({
-                                "full_processes_memory": memory_full_processes,
+                                "players": player_cout,
             });
         out
     }).await.unwrap();
@@ -159,7 +162,7 @@ async fn accept_connection(ws_stream: WebSocket) {
         "t": "STOP_ERROR"
     });
     let (mut _track, mut controler) = create_player(ffmpeg_preconfig(" ").await.unwrap().into()); // make to stop panic when the control is already set when use
-    controler.stop();
+    let _ = controler.stop();
     dr.add_global_event(Event::Track(songbird::TrackEvent::End), Callback {ws: send_s.clone(), data: jdata, data_err: jdata_err});
 
 

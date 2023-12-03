@@ -1,9 +1,10 @@
 mod ffmpeg_support;
 mod youtube_supprt;
+mod task_support;
 
 use core::f32;
-use std::net::SocketAddr;
-use ffmpeg_support::ffmpeg_preconfig;
+use std::{net::SocketAddr, num::NonZeroU64};
+use ffmpeg_support::get_input;
 use futures_util::{SinkExt, StreamExt};
 use serde_json::{json, Value};
 use sysinfo::{System, SystemExt, Pid, ProcessExt};
@@ -13,11 +14,12 @@ use axum::{
     routing::get,
     response::{Response, IntoResponse},
     Router, http,
-    http::{Request, StatusCode},
+    extract::Request,
+    http::StatusCode,
     middleware::{Next, from_fn},
 };
 use async_trait::async_trait;
-use songbird::{Driver, Config, ConnectionInfo, EventContext, id::{GuildId, UserId, ChannelId}, Event, EventHandler, create_player};
+use songbird::{Driver, Config, ConnectionInfo, EventContext, id::{GuildId, UserId, ChannelId}, Event, EventHandler, tracks::TrackHandle};
 use serde::{Deserialize, Serialize};
 use json_comments::StripComments;
 use lazy_static::lazy_static;
@@ -38,7 +40,7 @@ struct ConfigFile {
     pub auth: Value,
 }
 
-async fn auth<B>(req: Request<B>, next: Next<B>) -> Result<Response, StatusCode> {
+async fn auth(req: Request, next: Next) -> Result<Response, StatusCode> {
     if req.uri().path() == "/" { return Err(StatusCode::OK); }
     if ROOT_CONFIG.auth.is_string() {            
         let auth_header = req.headers().get(http::header::AUTHORIZATION).and_then(|header| header.to_str().ok());
@@ -61,8 +63,13 @@ async fn main() {
     let server_addr = &ROOT_CONFIG.bind;
     let addr_l: SocketAddr = server_addr.parse().expect("Unable to parse socket address");
     println!("listening on {}", addr_l.to_string());
-    axum::Server::bind(&addr_l)
-    .serve(app.into_make_service())
+    let listener = tokio::net::TcpListener::bind(addr_l)
+        .await
+        .unwrap();
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
     .await
     .unwrap();
 }
@@ -72,7 +79,7 @@ async fn handler_root() -> StatusCode {
 }
 
 async fn handler_status() -> Response {
-    let youtube_status = !reqwest::get("https://manifest.googlevideo.com/api/manifest/hls_playlist/").await.unwrap().status().eq(&StatusCode::TOO_MANY_REQUESTS);
+    let youtube_status = !reqwest::get("https://manifest.googlevideo.com/api/manifest/hls_playlist/").await.unwrap().status().eq(&reqwest::StatusCode::TOO_MANY_REQUESTS);
     let a = tokio::task::spawn_blocking(move || {
         let pid = Pid::from(std::process::id() as usize);
         let mut sys = System::new();
@@ -119,6 +126,7 @@ struct Callback {
 #[async_trait]
 impl EventHandler for Callback {
     async fn act(&self, ctx: &EventContext<'_>) -> Option<Event> {
+        println!("{:#?}", ctx);
         match ctx {
             EventContext::Track(ts_raw) => {
                 let ts = ts_raw.get(0).unwrap();
@@ -151,9 +159,9 @@ async fn accept_connection(ws_stream: WebSocket) {
             if out.is_err() { break; }
         }
     });
-    let mut user_id = 0;
+    let mut user_id = 1;
     let mut session_id = "".to_string();
-    let mut channel_id= 0;
+    let mut channel_id = 1;
     let mut dr = Driver::new(Config::default());
     let jdata = json!({
         "t": "STOP"
@@ -161,8 +169,7 @@ async fn accept_connection(ws_stream: WebSocket) {
     let jdata_err = json!({
         "t": "STOP_ERROR"
     });
-    let (mut _track, mut controler) = create_player(ffmpeg_preconfig(" ").await.unwrap().into()); // make to stop panic when the control is already set when use
-    let _ = controler.stop();
+    let mut controler: Option<TrackHandle> = None;
     dr.add_global_event(Event::Track(songbird::TrackEvent::End), Callback {ws: send_s.clone(), data: jdata, data_err: jdata_err});
 
 
@@ -209,10 +216,13 @@ async fn accept_connection(ws_stream: WebSocket) {
                 let guild_id = msg.get("guild_id").unwrap().as_str().unwrap().to_string().parse::<u64>().unwrap();
                 let endpoint = msg.get("endpoint").unwrap().as_str().unwrap();
                 dr.leave();
-                dr.connect(ConnectionInfo {channel_id: Some(ChannelId(channel_id)), endpoint: endpoint.to_string(), guild_id: GuildId(guild_id), session_id: session_id.clone(), token, user_id: UserId(user_id)}).await.unwrap();
+                dr.connect(ConnectionInfo {channel_id: Some(ChannelId(NonZeroU64::new(channel_id).unwrap())), endpoint: endpoint.to_string(), guild_id: GuildId(NonZeroU64::new(guild_id).unwrap()), session_id: session_id.clone(), token, user_id: UserId(NonZeroU64::new(user_id).unwrap())}).await.unwrap();
             } else if data_out == "PLAY" {
                 let dataout = data["url"].as_str().unwrap().to_string();
-                let _ = controler.stop();
+                let stop_op = controler.as_mut();
+                if stop_op.is_some() {
+                    let _ = stop_op.unwrap().stop();
+                }
                 dr.stop();
                 let data_input;
                 if data["type"].is_string() {
@@ -231,21 +241,20 @@ async fn accept_connection(ws_stream: WebSocket) {
                         continue;
                     }
                 } else {
-                    data_input = ffmpeg_preconfig(dataout).await.unwrap(); 
+                    data_input = get_input(dataout).await; 
                 }
-                (_track, controler) = create_player(data_input);
-                let _ = controler.set_volume(volume as f32 / 100.0);
-                dr.play(_track);
+                controler = Some(dr.play_input(data_input));
+                let _ = controler.as_mut().unwrap().set_volume(volume as f32 / 100.0);
             } else if data_out == "VOLUME" {
                 let dataout = data.as_i64().unwrap();
                 volume = dataout;
-                let _ = controler.set_volume(volume as f32 / 100.0);
+                let _ = controler.as_mut().unwrap().set_volume(volume as f32 / 100.0);
             } else if data_out == "PAUSE" {
-                let _ = controler.pause();
+                let _ = controler.as_mut().unwrap().pause();
             } else if data_out == "RESUME" {
-                let _ = controler.play();
+                let _ = controler.as_mut().unwrap().play();
             } else if data_out == "STOP" {
-                controler.stop().unwrap();
+                let _ = controler.as_mut().as_mut().unwrap().stop();
                 dr.stop();
             } else if data_out == "PING" {
                 let send_smg = json!({"t": "PONG"});

@@ -126,7 +126,6 @@ struct Callback {
 #[async_trait]
 impl EventHandler for Callback {
     async fn act(&self, ctx: &EventContext<'_>) -> Option<Event> {
-        println!("{:#?}", ctx);
         match ctx {
             EventContext::Track(ts_raw) => {
                 let ts = ts_raw.get(0).unwrap();

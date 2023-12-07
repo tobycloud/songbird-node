@@ -24,6 +24,7 @@ use serde::{Deserialize, Serialize};
 use json_comments::StripComments;
 use lazy_static::lazy_static;
 use youtube_supprt::youtube_modun;
+use tokio::sync::Mutex;
 
 lazy_static! {
     static ref ROOT_CONFIG: ConfigFile = {
@@ -31,6 +32,9 @@ lazy_static! {
         let stripped = StripComments::new(file_data.as_slice());
         let root_config: ConfigFile = serde_json::from_reader(stripped).expect("Config Error: Couldn't parse config");
         root_config
+    };
+    static ref REGION: Mutex<String> = {
+        Mutex::new("".to_string())
     };
 }
 
@@ -54,6 +58,8 @@ async fn auth(req: Request, next: Next) -> Result<Response, StatusCode> {
 
 #[tokio::main]
 async fn main() {
+    *REGION.lock().await = reqwest::get("https://api.techniknews.net/ipgeo/").await.unwrap().text().await.unwrap();
+    println!("get region successfully");
     let app = Router::new()
     .route("/", get(handler_root))
     .route("/region", get(handler_region))
@@ -107,7 +113,7 @@ async fn handler_status() -> Response {
 
 
 async fn handler_region() -> Response {
-    let mut body = reqwest::get("https://api.techniknews.net/ipgeo/").await.unwrap().text().await.unwrap().into_response();
+    let mut body = REGION.lock().await.clone().into_response();
     body.headers_mut().remove("Content-Type");
     body.headers_mut().append("Content-Type", "application/json".parse().unwrap());
     body

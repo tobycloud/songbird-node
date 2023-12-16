@@ -22,7 +22,6 @@ openssl = { version = "0.10", features = ["vendored"]}
 rustube = {git = "https://github.com/thedtvn/rustube" , rev = "372c5aeddb4403032f69ac9dbe621a4f61a798af"}
 dashmap = "5.5.3"
 chrono = "0.4.31"
-audiopus = "0.2.0"
 base64 = "0.21.5"
 hound = "3.5.1"
 

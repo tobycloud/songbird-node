@@ -193,8 +193,7 @@ struct InnerReceiver {
 
 #[derive(Clone)]
 struct CallbackR {
-    ws: UnboundedSender<Message>,
-    pub accumulator: DashMap<u32, Snippet>
+    ws: UnboundedSender<Message>
 }
 
 
@@ -203,8 +202,7 @@ impl CallbackR {
         // You can manage state here, such as a buffer of audio packet bytes so
         // you can later store them in intervals.
         Self {
-            ws,
-            accumulator: DashMap::default()
+            ws
         }
     }
 }
@@ -238,7 +236,6 @@ impl EventHandler for CallbackR {
             Ctx::VoiceTick(packet) => {
                 for i in &packet.speaking {
                     let data_out = &i.1.decoded_voice;
-                    let old_data: Option<dashmap::mapref::one::RefMut<'_, u32, Snippet>> = self.accumulator.get_mut(i.0);
                     if data_out.is_some() {
                         let data = data_out.as_ref().unwrap();
                         let mut data_u8 = Vec::new();
@@ -254,6 +251,12 @@ impl EventHandler for CallbackR {
                         self.ws.send(Message::Text(jdata.to_string())).unwrap();
                     }
                 }
+            },
+            Ctx::DriverConnect(data) => {
+                let jdata = json!({
+                    "t": "CONNECTED"
+                });
+                let _ = self.ws.send(Message::Text(jdata.to_string()));
             },
             _ => {
                 // We won't be registering this struct for any more event classes.
@@ -290,10 +293,11 @@ async fn accept_connection(ws_stream: WebSocket) {
     });
     let mut controler: Option<TrackHandle> = None;
     let evt_receiver = CallbackR::new(send_s.clone());
-
     dr.add_global_event(Event::Track(songbird::TrackEvent::End), Callback {ws: send_s.clone(), data: jdata.clone(), data_err: jdata_err.clone()});
     dr.add_global_event(CoreEvent::SpeakingStateUpdate.into(), evt_receiver.clone());
     dr.add_global_event(CoreEvent::VoiceTick.into(), evt_receiver.clone());
+    dr.add_global_event(CoreEvent::ClientDisconnect.into(), evt_receiver.clone());
+    dr.add_global_event(CoreEvent::DriverConnect.into(), evt_receiver.clone());
     let mut volume = 100;
     while let Some(msg) = read.next().await {
         if msg.is_err() { 

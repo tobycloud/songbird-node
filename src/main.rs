@@ -147,6 +147,7 @@ fn to_wav(pcm_samples: &[i16], buffer: &mut Vec<u8>) -> Result<(), hound::Error>
     Ok(())
 }
 
+#[derive(Clone)]
 struct Callback {
     ws: UnboundedSender<Message>,
     data: Value,
@@ -160,12 +161,29 @@ impl EventHandler for Callback {
             EventContext::Track(ts_raw) => {
                 let ts = ts_raw.get(0).unwrap();
                 let data;
-                if !ts.0.play_time.is_zero() {
-                    data = self.data.to_string();
-                } else {
-                    data = self.data_err.to_string()
+                match ts.0.playing {
+                    songbird::tracks::PlayMode::Stop => {
+                        if ts.0.playing.is_done() {
+                            data = self.data.to_string();
+                        } else {
+                            data = "".to_string();
+                        }
+                    },
+                    songbird::tracks::PlayMode::End => {
+                        if ts.0.playing.is_done() {
+                            data = self.data.to_string();
+                        } else {
+                            data = "".to_string();
+                        }
+                    },
+                    songbird::tracks::PlayMode::Errored(_) => {
+                        data = self.data_err.to_string();
+                    },
+                    _ => todo!(),   
                 }
-                self.ws.send(Message::Text(data)).unwrap();
+                if !data.is_empty() {
+                    self.ws.send(Message::Text(data)).unwrap();
+                }
             },
             _ => return None,
         }
@@ -293,7 +311,9 @@ async fn accept_connection(ws_stream: WebSocket) {
     });
     let mut controler: Option<TrackHandle> = None;
     let evt_receiver = CallbackR::new(send_s.clone());
-    dr.add_global_event(Event::Track(songbird::TrackEvent::End), Callback {ws: send_s.clone(), data: jdata.clone(), data_err: jdata_err.clone()});
+    let track_event = Callback {ws: send_s.clone(), data: jdata.clone(), data_err: jdata_err.clone()};
+    dr.add_global_event(Event::Track(songbird::TrackEvent::End), track_event.clone());
+    dr.add_global_event(Event::Track(songbird::TrackEvent::Error), track_event.clone());
     dr.add_global_event(CoreEvent::SpeakingStateUpdate.into(), evt_receiver.clone());
     dr.add_global_event(CoreEvent::VoiceTick.into(), evt_receiver.clone());
     dr.add_global_event(CoreEvent::ClientDisconnect.into(), evt_receiver.clone());

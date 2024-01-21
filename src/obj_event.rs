@@ -55,7 +55,7 @@ impl EventHandler for Callback {
                             "d": false
                         })
                     }
-                    songbird::tracks::PlayMode::End => {
+                    songbird::tracks::PlayMode::End | songbird::tracks::PlayMode::Stop => {
                         sucsess_stop
                     }
                     songbird::tracks::PlayMode::Errored(err ) => {

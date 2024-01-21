@@ -146,6 +146,8 @@ async fn accept_connection(ws_stream: WebSocket) {
     let mut controler: Option<TrackHandle> = None;
     let evt_receiver = CallbackR::new(send_s.clone());
     let track_event = Callback {ws: send_s.clone()};
+    dr.add_global_event(Event::Track(songbird::TrackEvent::Play), track_event.clone());
+    dr.add_global_event(Event::Track(songbird::TrackEvent::Pause), track_event.clone());
     dr.add_global_event(Event::Track(songbird::TrackEvent::End), track_event.clone());
     dr.add_global_event(Event::Track(songbird::TrackEvent::Error), track_event.clone());
     dr.add_global_event(CoreEvent::SpeakingStateUpdate.into(), evt_receiver.clone());

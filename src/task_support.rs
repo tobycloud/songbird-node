@@ -1,10 +1,10 @@
-use songbird::input::{AudioStream, Input, LiveInput};
+use songbird::input::{Input, RawAdapter};
 use std::{
     io::{Read, Result as IoResult},
     mem,
     process::Child,
 };
-use symphonia::core::{io::{MediaSource, ReadOnlySource}, probe::Hint};
+use symphonia::core::io::ReadOnlySource;
 use tokio::runtime::Handle;
 
 /// Handle for a child process which ensures that any subprocesses are properly closed
@@ -48,13 +48,11 @@ impl From<Vec<Child>> for ChildContainer {
 
 impl From<ChildContainer> for Input {
     fn from(val: ChildContainer) -> Self {
-        let mut hint = Hint::new();
-        hint.mime_type("audio/opus");
-        let audio_stream = AudioStream {
-            input: Box::new(ReadOnlySource::new(val)) as Box<dyn MediaSource>,
-            hint: Some(hint),
-        };
-        Input::Live(LiveInput::Raw(audio_stream), None)
+        let source = ReadOnlySource::new(val);
+        let audio_stream = RawAdapter::new(
+            source, 48000, 2
+        );
+        Input::from(audio_stream)
     }
 }
 

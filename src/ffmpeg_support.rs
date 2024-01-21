@@ -20,7 +20,7 @@ pub async fn ffmpeg_player(path: String) -> Input {
         "10"];
     let mut args = vec![
         "-f",
-        "opus",
+        "f32le",
         "-ac",
         stereo_val,
         "-ar",

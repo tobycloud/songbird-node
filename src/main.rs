@@ -150,7 +150,6 @@ async fn accept_connection(ws_stream: WebSocket) {
     dr.add_global_event(Event::Track(songbird::TrackEvent::Error), track_event.clone());
     dr.add_global_event(CoreEvent::SpeakingStateUpdate.into(), evt_receiver.clone());
     dr.add_global_event(CoreEvent::VoiceTick.into(), evt_receiver.clone());
-    dr.add_global_event(CoreEvent::ClientDisconnect.into(), evt_receiver.clone());
     dr.add_global_event(CoreEvent::DriverConnect.into(), evt_receiver.clone());
     let mut volume = 100;
     while let Some(msg) = read.next().await {

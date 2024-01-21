@@ -194,7 +194,6 @@ async fn accept_connection(ws_stream: WebSocket) {
                 let token = msg.get("token").unwrap().as_str().unwrap().to_string();
                 let guild_id = msg.get("guild_id").unwrap().as_str().unwrap().to_string().parse::<u64>().unwrap();
                 let endpoint = msg.get("endpoint").unwrap().as_str().unwrap();
-                dr.leave();
                 dr.connect(ConnectionInfo {channel_id: Some(ChannelId(NonZeroU64::new(channel_id).unwrap())), endpoint: endpoint.to_string(), guild_id: GuildId(NonZeroU64::new(guild_id).unwrap()), session_id: session_id.clone(), token, user_id: RawUserId(NonZeroU64::new(user_id).unwrap())}).await.unwrap();
             } else if data_out == "PLAY" {
                 let dataout = data["url"].as_str().unwrap().to_string();

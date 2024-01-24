@@ -132,7 +132,7 @@ async fn accept_connection(ws_stream: WebSocket) {
         loop {
             let read_data = send_r.recv().await;
             if read_data.is_none() { 
-                write.close().await.unwrap();
+                let _ = write.close().await;
                 break;
             }
             let out = write.send(read_data.unwrap()).await;

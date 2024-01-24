@@ -125,7 +125,7 @@ jobs:
         uses: "WyriHaximus/github-action-get-previous-tag@v1"
         
       - name: Delete Old Release
-        if: ${{ (!startsWith(steps.previoustag.outputs.tag, 'dev-')) && (steps.previoustag.outputs.tag != github.event.head_commit.message) }}
+        if: ${{ startsWith(steps.previoustag.outputs.tag, 'dev-') || (steps.previoustag.outputs.tag == github.event.head_commit.message) }}
         continue-on-error: true
         uses: dev-drprasad/delete-tag-and-release@v1.0
         with:

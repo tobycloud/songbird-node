@@ -1,6 +1,6 @@
 [package]
 name = "songbird_node"
-version = "0.0.5"
+version = "0.0.6"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -13,7 +13,7 @@ serde_json = "*"
 json_comments = "*"
 lazy_static = "1.4.0"
 serde = { version = "1.0", features = ["derive"] }
-songbird = { version = "0.4.0", features = ["driver", "gateway", "rustls", "receive"], default_features = false}
+songbird = { version = "0.4.1", features = ["driver", "gateway", "rustls", "receive"], default_features = false}
 async-trait = "0.1.74"
 axum = {version = "0.7", features=["ws"]}
 reqwest = "0.11"
@@ -22,7 +22,7 @@ openssl = { version = "0.10", features = ["vendored"]}
 rustube = {git = "https://github.com/fantasybot-red/rustube" , rev = "372c5aeddb4403032f69ac9dbe621a4f61a798af"}
 dashmap = "5.5.3"
 chrono = "0.4.31"
-base64 = "0.21.5"
+base64 = "0.22"
 hound = "3.5.1"
 
 

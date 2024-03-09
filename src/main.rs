@@ -115,6 +115,15 @@ async fn handler_status() -> Response {
 
 
 async fn handler_region() -> Response {
+    if serde_json::from_str::<Value>(REGION.lock().await.as_str()).unwrap().get("continent").is_none() {
+        loop {
+            let req = reqwest::get("https://api.techniknews.net/ipgeo/").await.unwrap().text().await.unwrap();
+            if serde_json::from_str::<Value>(req.clone().as_str()).unwrap().get("continent").is_some() {
+                *REGION.lock().await = req;
+                break;
+            } 
+        }
+    }
     let mut body = REGION.lock().await.clone().into_response();
     body.headers_mut().remove("Content-Type");
     body.headers_mut().append("Content-Type", "application/json".parse().unwrap());

@@ -19,7 +19,6 @@ axum = {version = "0.7", features=["ws"]}
 reqwest = "0.11"
 sysinfo = "0.30.5"
 openssl = { version = "0.10", features = ["vendored"]} 
-rustube = {git = "https://github.com/fantasybot-red/rustube" , rev = "372c5aeddb4403032f69ac9dbe621a4f61a798af"}
 dashmap = "5.5.3"
 chrono = "0.4.31"
 base64 = "0.22"

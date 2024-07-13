@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 mod ffmpeg_support;
-mod youtube_supprt;
 mod task_support;
 mod obj_event;
 
@@ -24,7 +23,6 @@ use serde::{Deserialize, Serialize};
 use songbird::id::UserId as RawUserId;
 use json_comments::StripComments;
 use lazy_static::lazy_static;
-use youtube_supprt::youtube_modun;
 use tokio::sync::Mutex;
 use obj_event::*;
 
@@ -217,17 +215,8 @@ async fn accept_connection(ws_stream: WebSocket) {
                     let jdata_err = json!({
                         "t": "STOP_ERROR"
                     });
-                    if data["type"].as_str().unwrap() == "youtube" {
-                        let data_input_raw = youtube_modun(dataout).await;
-                        if data_input_raw.is_err() { 
-                            let _ = send_s.send(Message::Text(jdata_err.to_string())); 
-                            continue;
-                        }
-                        data_input = data_input_raw.unwrap();
-                    } else {
-                        let _ = send_s.send(Message::Text(jdata_err.to_string()));
-                        continue;
-                    }
+                    let _ = send_s.send(Message::Text(jdata_err.to_string()));
+                    continue;
                 } else {
                     data_input = get_input(dataout).await; 
                 }

@@ -5,8 +5,6 @@ pub async fn get_input(path: String) -> Input {
     ffmpeg_player(path.clone()).await
 }
 
-
-
 pub async fn ffmpeg_player(path: String) -> Input {
     let is_stereo = true;
     let stereo_val = if is_stereo { "2" } else { "1" };
